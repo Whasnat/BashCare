@@ -33,3 +33,10 @@ logs/
 
 # Vite cache
 .vite/
+
+# Documentation and design files
+BashaCare.docx
+BashaCare_temp.zip
+BashaCare Web Application Implementation.md
+task.md
+implementation_plan.md
