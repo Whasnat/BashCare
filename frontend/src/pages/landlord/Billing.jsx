@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Receipt, Plus, Search, X, ChevronDown, Zap, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Receipt, Plus, Search, X, ChevronDown, Zap, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -245,6 +245,39 @@ export default function Billing() {
   const [genModalOpen, setGenModalOpen] = useState(false);
   const [cashTarget, setCashTarget] = useState(null);
   const [adjustTarget, setAdjustTarget] = useState(null);
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [markingOverdue, setMarkingOverdue] = useState(false);
+
+  const handleGenerateAll = async () => {
+    if (!window.confirm('Generate invoices for ALL active leases for the current month?')) return;
+    setGeneratingAll(true);
+    try {
+      const { data } = await api.post('/invoices/generate-all');
+      toast.success(data.message);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to generate invoices');
+    } finally {
+      setGeneratingAll(false);
+    }
+  };
+
+  const handleMarkOverdue = async () => {
+    setMarkingOverdue(true);
+    try {
+      const { data } = await api.post('/invoices/mark-overdue');
+      if (data.updated > 0) {
+        toast.success(`${data.updated} invoice(s) marked as Overdue`);
+        fetchData();
+      } else {
+        toast('No overdue invoices found', { icon: '✅' });
+      }
+    } catch (err) {
+      toast.error('Failed to mark overdue invoices');
+    } finally {
+      setMarkingOverdue(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -288,9 +321,19 @@ export default function Billing() {
           <h1 className="page-title">Billing & Ledger</h1>
           <p className="page-subtitle">Generate invoices and track payment status</p>
         </div>
-        <button className="btn btn-primary" id="generate-invoice-btn" onClick={() => setGenModalOpen(true)}>
-          <Plus size={16} /> Generate Invoice
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" id="mark-overdue-btn" onClick={handleMarkOverdue} disabled={markingOverdue} title="Mark all unpaid past-due invoices as Overdue">
+            {markingOverdue ? <span className="spinner" /> : <AlertTriangle size={15} />}
+            Mark Overdue
+          </button>
+          <button className="btn btn-secondary" id="generate-all-btn" onClick={handleGenerateAll} disabled={generatingAll}>
+            {generatingAll ? <span className="spinner" /> : <RefreshCw size={15} />}
+            Generate All (This Month)
+          </button>
+          <button className="btn btn-primary" id="generate-invoice-btn" onClick={() => setGenModalOpen(true)}>
+            <Plus size={16} /> Generate Invoice
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

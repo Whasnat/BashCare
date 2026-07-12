@@ -1,5 +1,6 @@
-import { queryWithRLS } from '../config/database.js';
+import { queryWithRLS, queryAdmin } from '../config/database.js';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 const ENCRYPTION_KEY = process.env.NID_ENCRYPTION_KEY || 'bashacare_nid_key_32bytes_secret!!';
 const IV_LENGTH = 16;
@@ -31,7 +32,8 @@ export default async function tenantsRoutes(fastify) {
       `SELECT tp.*,
               l.id AS lease_id, l.is_active,
               u.unit_number, p.name AS property_name,
-              l.base_rent
+              l.base_rent,
+              (SELECT COUNT(*) FROM users u2 WHERE u2.linked_entity_id = tp.id AND u2.role = 'tenant') > 0 AS has_login
        FROM tenant_profiles tp
        LEFT JOIN leases l ON l.tenant_id = tp.id AND l.is_active = TRUE
        LEFT JOIN units u ON u.id = l.unit_id
@@ -94,5 +96,60 @@ export default async function tenantsRoutes(fastify) {
     );
     if (!result.rows[0]) return reply.code(404).send({ error: 'Tenant not found' });
     return { ...result.rows[0], encrypted_national_id: undefined };
+  });
+
+  // ─── Create login account for a tenant ────────────────────────────────
+  fastify.post('/:id/create-login', auth, async (req, reply) => {
+    const { email, password } = req.body;
+    if (!email || !password) return reply.code(400).send({ error: 'email and password are required' });
+    if (password.length < 6) return reply.code(400).send({ error: 'Password must be at least 6 characters' });
+
+    // Verify tenant belongs to this landlord
+    const tenantRes = await queryWithRLS(
+      req.user.landlord_id,
+      `SELECT id, landlord_id FROM tenant_profiles WHERE id = $1`,
+      [req.params.id]
+    );
+    if (!tenantRes.rows[0]) return reply.code(404).send({ error: 'Tenant not found' });
+
+    // Check for existing login
+    const existingRes = await queryAdmin(
+      `SELECT id FROM users WHERE linked_entity_id = $1 AND role = 'tenant'`,
+      [req.params.id]
+    );
+    if (existingRes.rows[0]) return reply.code(409).send({ error: 'This tenant already has a login account' });
+
+    const hash = await bcrypt.hash(password, 12);
+    try {
+      await queryAdmin(
+        `INSERT INTO users (landlord_id, linked_entity_id, role, email, password_hash, full_name, is_active)
+         SELECT $1, tp.id, 'tenant', $2, $3, tp.full_name, TRUE
+         FROM tenant_profiles tp WHERE tp.id = $4`,
+        [req.user.landlord_id, email, hash, req.params.id]
+      );
+      return reply.code(201).send({ message: 'Tenant login created successfully' });
+    } catch (err) {
+      if (err.code === '23505') return reply.code(409).send({ error: 'This email is already in use' });
+      throw err;
+    }
+  });
+
+  // ─── Delete a tenant (only if no active lease) ────────────────────────
+  fastify.delete('/:id', auth, async (req, reply) => {
+    // Block deletion if active lease exists
+    const leaseCheck = await queryWithRLS(
+      req.user.landlord_id,
+      `SELECT id FROM leases WHERE tenant_id = $1 AND is_active = TRUE`,
+      [req.params.id]
+    );
+    if (leaseCheck.rows[0]) {
+      return reply.code(409).send({ error: 'Cannot delete tenant with an active lease. Terminate the lease first.' });
+    }
+    await queryWithRLS(
+      req.user.landlord_id,
+      `DELETE FROM tenant_profiles WHERE id = $1`,
+      [req.params.id]
+    );
+    return reply.code(204).send();
   });
 }

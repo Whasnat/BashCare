@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Building2, DoorOpen, Users, Receipt, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboard();
@@ -122,13 +124,13 @@ export default function Dashboard() {
         <div className="card">
           <h3 className="section-title">Quick Actions</h3>
           <div className="flex-col gap-3">
-            <button className="btn btn-secondary justify-start py-3">
+            <button className="btn btn-secondary justify-start py-3" onClick={() => navigate('/tenants')}>
               <Users size={16} className="text-accent" /> Register New Tenant
             </button>
-            <button className="btn btn-secondary justify-start py-3">
+            <button className="btn btn-secondary justify-start py-3" onClick={() => navigate('/billing')}>
               <Receipt size={16} className="text-emerald" /> Generate Monthly Invoices
             </button>
-            <button className="btn btn-secondary justify-start py-3">
+            <button className="btn btn-secondary justify-start py-3" onClick={() => navigate('/properties')}>
               <Building2 size={16} className="text-amber" /> Add New Property
             </button>
           </div>

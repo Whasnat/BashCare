@@ -86,4 +86,57 @@ export default async function invoicesRoutes(fastify) {
     );
     return reply.code(201).send(result.rows[0]);
   });
+
+  // ─── Generate invoices for ALL active leases for the current month ────
+  fastify.post('/generate-all', auth, async (req, reply) => {
+    const now = new Date();
+    const billing_month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const dueDate = new Date(billing_month);
+    dueDate.setDate(10);
+
+    const leasesRes = await queryWithRLS(
+      req.user.landlord_id,
+      `SELECT id, tenant_id, base_rent FROM leases WHERE is_active = TRUE`
+    );
+
+    if (leasesRes.rows.length === 0) {
+      return reply.code(200).send({ generated: 0, skipped: 0, message: 'No active leases found' });
+    }
+
+    let generated = 0;
+    let skipped = 0;
+    for (const lease of leasesRes.rows) {
+      const result = await queryWithRLS(
+        req.user.landlord_id,
+        `INSERT INTO ledger_invoices
+           (landlord_id, lease_id, tenant_id, billing_month, base_rent, amount_due, due_date)
+         VALUES ($1, $2, $3, $4, $5, $5, $6)
+         ON CONFLICT (lease_id, billing_month) DO NOTHING
+         RETURNING id`,
+        [req.user.landlord_id, lease.id, lease.tenant_id, billing_month, lease.base_rent, dueDate]
+      );
+      if (result.rows[0]) generated++;
+      else skipped++;
+    }
+
+    return reply.code(201).send({
+      generated,
+      skipped,
+      billing_month,
+      message: `Generated ${generated} invoice(s). ${skipped} already existed.`,
+    });
+  });
+
+  // ─── Mark overdue: flip UNPAID past-due invoices to OVERDUE ──────────
+  fastify.post('/mark-overdue', auth, async (req, reply) => {
+    const result = await queryWithRLS(
+      req.user.landlord_id,
+      `UPDATE ledger_invoices
+       SET status = 'OVERDUE', updated_at = NOW()
+       WHERE status = 'UNPAID' AND due_date < CURRENT_DATE
+       RETURNING id`
+    );
+    return { updated: result.rowCount };
+  });
 }
+

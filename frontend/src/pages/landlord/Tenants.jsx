@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Pencil, Search, X, Phone, Mail, Shield } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Search, X, Phone, Mail, Shield, KeyRound, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
+// ─── Tenant Add/Edit Modal ────────────────────────────────────────────
 function TenantModal({ open, onClose, tenant, onSaved }) {
   const isEdit = !!tenant;
   const [form, setForm] = useState({
@@ -82,47 +83,24 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Full Name *</label>
-                  <input
-                    className="form-input"
-                    placeholder="Abdul Karim"
-                    value={form.full_name}
-                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                    required
-                  />
+                  <input className="form-input" placeholder="Abdul Karim" value={form.full_name} onChange={setF('full_name')} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone Number *</label>
-                  <input
-                    className="form-input"
-                    placeholder="+8801XXXXXXXXX"
-                    value={form.phone_number}
-                    onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-                    required
-                  />
+                  <input className="form-input" placeholder="+8801XXXXXXXXX" value={form.phone_number} onChange={setF('phone_number')} required />
                 </div>
               </div>
               <div className="form-grid" style={{ marginTop: 12 }}>
                 <div className="form-group">
                   <label className="form-label">Email Address</label>
-                  <input
-                    type="email"
-                    className="form-input"
-                    placeholder="tenant@example.com"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  />
+                  <input type="email" className="form-input" placeholder="tenant@example.com" value={form.email} onChange={setF('email')} />
                 </div>
                 {!isEdit && (
                   <div className="form-group">
                     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Shield size={12} /> National ID (NID) — Encrypted at rest
                     </label>
-                    <input
-                      className="form-input"
-                      placeholder="NID number (optional)"
-                      value={form.national_id}
-                      onChange={(e) => setForm({ ...form, national_id: e.target.value })}
-                    />
+                    <input className="form-input" placeholder="NID number (optional)" value={form.national_id} onChange={setF('national_id')} />
                   </div>
                 )}
               </div>
@@ -135,27 +113,17 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Contact Name</label>
-                  <input
-                    className="form-input"
-                    placeholder="Fatema Begum"
-                    value={form.emergency_contact}
-                    onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })}
-                  />
+                  <input className="form-input" placeholder="Fatema Begum" value={form.emergency_contact} onChange={setF('emergency_contact')} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Contact Phone</label>
-                  <input
-                    className="form-input"
-                    placeholder="+8801XXXXXXXXX"
-                    value={form.emergency_phone}
-                    onChange={(e) => setForm({ ...form, emergency_phone: e.target.value })}
-                  />
+                  <input className="form-input" placeholder="+8801XXXXXXXXX" value={form.emergency_phone} onChange={setF('emergency_phone')} />
                 </div>
               </div>
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn btn-ghost" onClick={handleClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? <span className="spinner" /> : null}
               {isEdit ? 'Save Changes' : 'Register Tenant'}
@@ -167,12 +135,159 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
   );
 }
 
+// ─── Set Login Modal ──────────────────────────────────────────────────
+function SetLoginModal({ open, onClose, tenant, onCreated }) {
+  const [form, setForm] = useState({ email: '', password: '', confirm: '' });
+  const [saving, setSaving] = useState(false);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (open && tenant) {
+      setForm({ email: tenant.email || '', password: '', confirm: '' });
+    }
+  }, [open, tenant]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (form.password !== form.confirm) return toast.error('Passwords do not match');
+    if (form.password.length < 6) return toast.error('Password must be at least 6 characters');
+    setSaving(true);
+    try {
+      await api.post(`/tenants/${tenant.id}/create-login`, {
+        email: form.email,
+        password: form.password,
+      });
+      toast.success(`Login created for ${tenant.full_name}`);
+      onCreated();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to create login');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open || !tenant) return null;
+  return (
+    <div className="modal-overlay">
+      <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2 className="modal-title">Set Portal Login</h2>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+              for <strong style={{ color: 'var(--text-primary)' }}>{tenant?.full_name}</strong>
+            </p>
+          </div>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{
+              background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)',
+              borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: 'var(--text-secondary)',
+            }}>
+              <KeyRound size={13} style={{ display: 'inline', marginRight: 6, color: 'var(--accent-primary)' }} />
+              The tenant will use these credentials to log in to the BashaCare tenant portal.
+            </div>
+            <div className="form-group">
+              <label className="form-label">Login Email *</label>
+              <input
+                type="email" className="form-input" placeholder="tenant@example.com"
+                value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Password *</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={show ? 'text' : 'password'} className="form-input"
+                  placeholder="Min. 6 characters"
+                  value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
+                  required style={{ paddingRight: 80 }}
+                />
+                <button type="button" onClick={() => setShow(s => !s)}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.73rem' }}>
+                  {show ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirm Password *</label>
+              <input
+                type={show ? 'text' : 'password'} className="form-input"
+                placeholder="Re-enter password"
+                value={form.confirm} onChange={(e) => setForm(f => ({ ...f, confirm: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? <span className="spinner" /> : null}
+              <KeyRound size={14} /> Create Login
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Delete Confirm Modal ────────────────────────────────────────────
+function DeleteModal({ open, onClose, tenant, onDeleted }) {
+  const [deleting, setDeleting] = useState(false);
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/tenants/${tenant.id}`);
+      toast.success(`${tenant.full_name} deleted`);
+      onDeleted(tenant.id);
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete tenant');
+    } finally {
+      setDeleting(false);
+    }
+  };
+  if (!open || !tenant) return null;
+  return (
+    <div className="modal-overlay">
+      <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title" style={{ color: 'var(--accent-rose)' }}>Delete Tenant?</h2>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>
+          This will permanently delete <strong style={{ color: 'var(--text-primary)' }}>{tenant.full_name}</strong> and all their data. This cannot be undone.
+        </p>
+        {tenant.lease_id && (
+          <div style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.8rem', color: 'var(--accent-rose)' }}>
+            ⚠️ This tenant has an active lease. Terminate the lease first before deleting.
+          </div>
+        )}
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-danger" onClick={handleDelete} disabled={deleting || !!tenant.lease_id}>
+            {deleting ? <span className="spinner" /> : <Trash2 size={14} />}
+            Delete Tenant
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Tenants Page ────────────────────────────────────────────────
 export default function Tenants() {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
+  const [loginModal, setLoginModal] = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null);
   const [editing, setEditing] = useState(null);
 
   useEffect(() => { fetchTenants(); }, []);
@@ -194,6 +309,8 @@ export default function Tenants() {
     else setTenants((t) => t.map((x) => (x.id === saved.id ? { ...x, ...saved } : x)));
   };
 
+  const handleDeleted = (id) => setTenants((t) => t.filter((x) => x.id !== id));
+
   const filtered = tenants.filter((t) => {
     const q = search.toLowerCase();
     const matchSearch = t.full_name.toLowerCase().includes(q) ||
@@ -207,13 +324,14 @@ export default function Tenants() {
   });
 
   const activeTenants = tenants.filter((t) => t.lease_id).length;
+  const withLogin = tenants.filter((t) => t.has_login).length;
 
   return (
     <div>
       <div className="page-header">
         <div>
           <h1 className="page-title">Tenants</h1>
-          <p className="page-subtitle">Manage all tenant profiles and contact information</p>
+          <p className="page-subtitle">Manage all tenant profiles and portal access</p>
         </div>
         <button className="btn btn-primary" id="add-tenant-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
           <Plus size={16} /> Register Tenant
@@ -236,12 +354,12 @@ export default function Tenants() {
           </div>
           <div className="stat-icon emerald"><Users size={22} /></div>
         </div>
-        <div className="stat-card amber">
+        <div className="stat-card purple">
           <div className="stat-content">
-            <div className="stat-value">{tenants.length - activeTenants}</div>
-            <div className="stat-label">Without Lease</div>
+            <div className="stat-value">{withLogin} / {tenants.length}</div>
+            <div className="stat-label">Portal Access Active</div>
           </div>
-          <div className="stat-icon amber"><Users size={22} /></div>
+          <div className="stat-icon purple"><KeyRound size={22} /></div>
         </div>
       </div>
 
@@ -275,19 +393,20 @@ export default function Tenants() {
               <th>Email</th>
               <th>Unit</th>
               <th>Rent (৳)</th>
-              <th>Lease Status</th>
+              <th>Portal Login</th>
+              <th>Lease</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               [1,2,3,4].map((i) => (
-                <tr key={i}>{[1,2,3,4,5,6,7].map((j) => (
+                <tr key={i}>{[1,2,3,4,5,6,7,8].map((j) => (
                   <td key={j}><div className="skeleton" style={{ height: 18, width: '75%' }} /></td>
                 ))}</tr>
               ))
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7}>
+              <tr><td colSpan={8}>
                 <div className="empty-state">
                   <Users size={36} className="empty-icon" />
                   <div className="empty-title">No tenants found</div>
@@ -338,6 +457,22 @@ export default function Tenants() {
                   {t.base_rent ? `৳${Number(t.base_rent).toLocaleString()}` : '—'}
                 </td>
                 <td>
+                  {t.has_login ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#4ade80', fontSize: '0.8rem' }}>
+                      <CheckCircle2 size={14} /> Active
+                    </div>
+                  ) : (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: '0.75rem', gap: 4, color: 'var(--accent-amber)' }}
+                      onClick={() => setLoginModal(t)}
+                      title="Set portal login for this tenant"
+                    >
+                      <KeyRound size={13} /> Set Login
+                    </button>
+                  )}
+                </td>
+                <td>
                   {t.lease_id ? (
                     <span className="badge badge-occupied">Active Lease</span>
                   ) : (
@@ -345,14 +480,25 @@ export default function Tenants() {
                   )}
                 </td>
                 <td style={{ textAlign: 'right' }}>
-                  <button
-                    className="btn btn-ghost btn-sm btn-icon"
-                    id={`edit-tenant-${t.id}`}
-                    onClick={() => { setEditing(t); setModalOpen(true); }}
-                    title="Edit"
-                  >
-                    <Pencil size={15} />
-                  </button>
+                  <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                    <button
+                      className="btn btn-ghost btn-sm btn-icon"
+                      id={`edit-tenant-${t.id}`}
+                      onClick={() => { setEditing(t); setModalOpen(true); }}
+                      title="Edit"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm btn-icon"
+                      style={{ color: 'var(--accent-rose)' }}
+                      id={`delete-tenant-${t.id}`}
+                      onClick={() => setDeleteModal(t)}
+                      title="Delete"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -365,6 +511,18 @@ export default function Tenants() {
         onClose={() => { setModalOpen(false); setEditing(null); }}
         tenant={editing}
         onSaved={handleSaved}
+      />
+      <SetLoginModal
+        open={!!loginModal}
+        onClose={() => setLoginModal(null)}
+        tenant={loginModal}
+        onCreated={fetchTenants}
+      />
+      <DeleteModal
+        open={!!deleteModal}
+        onClose={() => setDeleteModal(null)}
+        tenant={deleteModal}
+        onDeleted={handleDeleted}
       />
     </div>
   );
