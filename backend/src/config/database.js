@@ -6,7 +6,7 @@ const poolConfig = process.env.DATABASE_URL ? {
   ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 15000,
 } : {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
@@ -15,7 +15,7 @@ const poolConfig = process.env.DATABASE_URL ? {
   password: process.env.DB_PASSWORD || 'postgres',
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 15000,
 };
 
 const pool = new Pool(poolConfig);
