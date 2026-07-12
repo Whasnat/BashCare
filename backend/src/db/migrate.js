@@ -8,13 +8,17 @@ const { Pool, Client } = pkg;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function createDbIfNotExists() {
-  const client = new Client({
+  const config = process.env.DATABASE_URL ? {
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  } : {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'admin',
     database: 'postgres',
-  });
+  };
+  const client = new Client(config);
 
   try {
     await client.connect();
@@ -49,13 +53,17 @@ async function getAppliedMigrations(pool) {
 async function migrate() {
   await createDbIfNotExists();
 
-  const pool = new Pool({
+  const poolConfig = process.env.DATABASE_URL ? {
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  } : {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
     database: process.env.DB_NAME || 'bashacare',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'admin',
-  });
+  };
+  const pool = new Pool(poolConfig);
 
   console.log('🚀 Running BashaCare database migrations...\n');
 
