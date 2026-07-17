@@ -20,7 +20,9 @@ import webhooksRoutes from './routes/webhooks.js';
 import portalRoutes from './routes/portal.js';
 
 const fastify = Fastify({
-  logger: process.env.NODE_ENV !== 'production',
+  logger: process.env.NODE_ENV === 'production'
+    ? { level: 'info' }
+    : process.env.NODE_ENV === 'test' ? false : true,
 });
 
 // ─── Security & CORS ──────────────────────────────────────────────────
@@ -33,8 +35,13 @@ await fastify.register(cors, {
 });
 
 // ─── JWT ──────────────────────────────────────────────────────────────
+const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'bashacare_dev_secret');
+if (!jwtSecret) {
+  console.error('❌ FATAL: JWT_SECRET environment variable is required in production.');
+  process.exit(1);
+}
 await fastify.register(jwt, {
-  secret: process.env.JWT_SECRET || 'bashacare_dev_secret',
+  secret: jwtSecret,
   sign: { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
 });
 

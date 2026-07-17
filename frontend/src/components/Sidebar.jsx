@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, Building2, DoorOpen, Users, FileText, 
-  Wallet, Receipt, Zap, PieChart, Settings, Home
+import {
+  LayoutDashboard, Building2, DoorOpen, Users, FileText,
+  Wallet, Receipt, Zap, PieChart, Settings, Home, X
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
@@ -36,14 +36,20 @@ const NAV_ITEMS = {
   ],
 };
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { pathname } = useLocation();
   const { user, logout } = useAuthStore();
-  
+
   const navLinks = NAV_ITEMS[user?.role] || NAV_ITEMS.landlord;
 
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to sign out?')) {
+      logout();
+    }
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-logo">
         <Link to="/" className="logo-mark">
           <div className="logo-icon">B</div>
@@ -54,6 +60,10 @@ export default function Sidebar() {
             </div>
           </div>
         </Link>
+        {/* Close button for mobile */}
+        <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="sidebar-nav">
@@ -74,7 +84,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-user" onClick={logout} style={{ cursor: 'pointer' }}>
+        <div className="sidebar-user" onClick={handleLogout} style={{ cursor: 'pointer' }}>
           <div className="user-avatar">
             {user?.full_name?.charAt(0) || 'U'}
           </div>
@@ -87,4 +97,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-

@@ -2,7 +2,11 @@ import { queryWithRLS, queryAdmin } from '../config/database.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 
-const ENCRYPTION_KEY = process.env.NID_ENCRYPTION_KEY || 'bashacare_nid_key_32bytes_secret!!';
+const ENCRYPTION_KEY = process.env.NID_ENCRYPTION_KEY || (
+  process.env.NODE_ENV === 'production'
+    ? (() => { throw new Error('FATAL: NID_ENCRYPTION_KEY is required in production'); })()
+    : 'bashacare_nid_key_32bytes_secret!!'
+);
 const IV_LENGTH = 16;
 
 function encryptNID(text) {
