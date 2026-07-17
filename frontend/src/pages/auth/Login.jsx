@@ -58,6 +58,12 @@ export default function Login() {
             />
           </div>
 
+          <div style={{ textAlign: 'right', marginTop: -4 }}>
+            <Link to="/forgot-password" className="text-accent text-sm" style={{ fontWeight: 500 }}>
+              Forgot password?
+            </Link>
+          </div>
+
           <button type="submit" className="btn btn-primary w-full mt-4 justify-center py-3" disabled={loading}>
             {loading ? <div className="spinner"></div> : 'Sign In'}
           </button>

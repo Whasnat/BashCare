@@ -164,4 +164,14 @@ export default async function authRoutes(fastify) {
 
     return { message: 'Password changed successfully. You may now use the application.' };
   });
+
+  // ─── Forgot Password (placeholder — no email integration yet) ──────
+  fastify.post('/forgot-password', async (request, reply) => {
+    const { email } = request.body;
+    if (!email) return reply.code(400).send({ error: 'Email is required' });
+
+    // Always return success to prevent email enumeration
+    fastify.log.info({ email }, 'Password reset requested (no email integration — admin must manually reset)');
+    return { message: 'If an account with that email exists, instructions have been sent.' };
+  });
 }

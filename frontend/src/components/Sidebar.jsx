@@ -33,6 +33,8 @@ const NAV_ITEMS = {
   ],
   admin: [
     { label: 'Admin Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { label: 'Landlords', path: '/admin/landlords', icon: Building2 },
+    { label: 'All Users', path: '/admin/users', icon: Users },
   ],
 };
 

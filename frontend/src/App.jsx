@@ -1,40 +1,54 @@
-import { useEffect, Component } from 'react';
+import { useEffect, Component, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/authStore';
 import useThemeStore from './store/themeStore';
 
-// Layouts
+// Layouts (loaded eagerly — needed immediately)
 import Layout from './components/Layout';
 
-// Auth Pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
+// ─── Lazy-loaded Pages (code splitting) ─────────────────────────────
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
+const ForcePasswordChange = lazy(() => import('./pages/auth/ForcePasswordChange'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
 
 // Landlord Pages
-import Dashboard from './pages/landlord/Dashboard';
-import Properties from './pages/landlord/Properties';
-import Units from './pages/landlord/Units';
-import Tenants from './pages/landlord/Tenants';
-import Leases from './pages/landlord/Leases';
-import Billing from './pages/landlord/Billing';
-import Payments from './pages/landlord/Payments';
-import Settings from './pages/landlord/Settings';
-import Reports from './pages/landlord/Reports';
+const Dashboard = lazy(() => import('./pages/landlord/Dashboard'));
+const Properties = lazy(() => import('./pages/landlord/Properties'));
+const Units = lazy(() => import('./pages/landlord/Units'));
+const Tenants = lazy(() => import('./pages/landlord/Tenants'));
+const Leases = lazy(() => import('./pages/landlord/Leases'));
+const Billing = lazy(() => import('./pages/landlord/Billing'));
+const Payments = lazy(() => import('./pages/landlord/Payments'));
+const Settings = lazy(() => import('./pages/landlord/Settings'));
+const Reports = lazy(() => import('./pages/landlord/Reports'));
 
 // Manager Pages
-import Utilities from './pages/manager/Utilities';
+const Utilities = lazy(() => import('./pages/manager/Utilities'));
 
 // Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard';
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminLandlords = lazy(() => import('./pages/admin/AdminLandlords'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 
 // Tenant Portal Pages
-import TenantDashboard from './pages/tenant/TenantDashboard';
-import TenantInvoices from './pages/tenant/TenantInvoices';
-import TenantInvoiceDetail from './pages/tenant/TenantInvoiceDetail';
+const TenantDashboard = lazy(() => import('./pages/tenant/TenantDashboard'));
+const TenantInvoices = lazy(() => import('./pages/tenant/TenantInvoices'));
+const TenantInvoiceDetail = lazy(() => import('./pages/tenant/TenantInvoiceDetail'));
 
-// Force Password Change Page
-import ForcePasswordChange from './pages/auth/ForcePasswordChange';
+// ─── Page Loading Spinner ────────────────────────────────────────────
+function PageLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '60vh', color: 'var(--text-muted)',
+    }}>
+      <div className="spinner" style={{ width: 32, height: 32 }} />
+    </div>
+  );
+}
 
 // ─── Error Boundary ──────────────────────────────────────────────────
 class ErrorBoundary extends Component {
@@ -128,43 +142,49 @@ function App() {
             border: '1px solid var(--toast-border)',
           }
         }} />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/force-change-password" element={<ForcePasswordChange />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/force-change-password" element={<ForcePasswordChange />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Landlord & Manager Routes */}
-          <Route path="/" element={<ProtectedRoute allowedRoles={['landlord', 'manager']}><Layout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="properties" element={<Properties />} />
-            <Route path="units" element={<Units />} />
-            <Route path="tenants" element={<Tenants />} />
-            <Route path="leases" element={<Leases />} />
-            <Route path="billing" element={<Billing />} />
-            <Route path="payments" element={<Payments />} />
-            <Route path="utilities" element={<Utilities />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
+            {/* Landlord & Manager Routes */}
+            <Route path="/" element={<ProtectedRoute allowedRoles={['landlord', 'manager']}><Layout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="properties" element={<Properties />} />
+              <Route path="units" element={<Units />} />
+              <Route path="tenants" element={<Tenants />} />
+              <Route path="leases" element={<Leases />} />
+              <Route path="billing" element={<Billing />} />
+              <Route path="payments" element={<Payments />} />
+              <Route path="utilities" element={<Utilities />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
 
-          {/* Admin Routes */}
-          <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><Layout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-          </Route>
+            {/* Admin Routes */}
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><Layout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="landlords" element={<AdminLandlords />} />
+              <Route path="users" element={<AdminUsers />} />
+            </Route>
 
-          {/* Tenant Portal Routes */}
-          <Route path="/portal" element={<ProtectedRoute allowedRoles={['tenant']}><Layout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/portal/dashboard" replace />} />
-            <Route path="dashboard" element={<TenantDashboard />} />
-            <Route path="invoices" element={<TenantInvoices />} />
-            <Route path="invoices/:id" element={<TenantInvoiceDetail />} />
-          </Route>
+            {/* Tenant Portal Routes */}
+            <Route path="/portal" element={<ProtectedRoute allowedRoles={['tenant']}><Layout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="/portal/dashboard" replace />} />
+              <Route path="dashboard" element={<TenantDashboard />} />
+              <Route path="invoices" element={<TenantInvoices />} />
+              <Route path="invoices/:id" element={<TenantInvoiceDetail />} />
+            </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </ErrorBoundary>
   );
