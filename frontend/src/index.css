@@ -1,7 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
 
-/* ── Design Tokens ─────────────────────────────────────────────── */
-:root {
+/* ── Design Tokens — Dark Theme (default) ────────────────────────── */
+:root,
+[data-theme="dark"] {
   /* Backgrounds */
   --bg-base:        #060b14;
   --bg-surface:     #0d1526;
@@ -54,6 +55,46 @@
 
   /* Transitions */
   --transition: 200ms ease;
+
+  /* Toast */
+  --toast-bg: #131e30;
+  --toast-text: #e8edf7;
+  --toast-border: rgba(255,255,255,0.1);
+}
+
+/* ── Design Tokens — Light Theme ─────────────────────────────────── */
+[data-theme="light"] {
+  /* Backgrounds */
+  --bg-base:        #f5f7fa;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f0f2f5;
+  --bg-card:        #ffffff;
+  --bg-hover:       #e8ecf1;
+  --bg-input:       #f8f9fb;
+
+  /* Text */
+  --text-primary:   #1a1f2e;
+  --text-secondary: #5a6478;
+  --text-muted:     #8b95a8;
+  --text-inverse:   #ffffff;
+
+  /* Borders */
+  --border:         rgba(0,0,0,0.08);
+  --border-accent:  rgba(20, 184, 166, 0.30);
+  --border-focus:   rgba(20, 184, 166, 0.5);
+
+  /* Shadows (lighter for light theme) */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.08);
+  --shadow-glow: 0 0 24px rgba(20,184,166,0.08);
+
+  /* Toast */
+  --toast-bg: #ffffff;
+  --toast-text: #1a1f2e;
+  --toast-border: rgba(0,0,0,0.08);
+
+  /* Accents stay the same for brand consistency */
 }
 
 /* ── Reset ──────────────────────────────────────────────────────── */

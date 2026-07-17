@@ -94,30 +94,30 @@ export default async function invoicesRoutes(fastify) {
     const dueDate = new Date(billing_month);
     dueDate.setDate(10);
 
-    const leasesRes = await queryWithRLS(
+    // Single INSERT ... SELECT replaces the old N+1 loop
+    const result = await queryWithRLS(
       req.user.landlord_id,
-      `SELECT id, tenant_id, base_rent FROM leases WHERE is_active = TRUE`
+      `INSERT INTO ledger_invoices
+         (landlord_id, lease_id, tenant_id, billing_month, base_rent, amount_due, due_date)
+       SELECT $1, l.id, l.tenant_id, $2, l.base_rent, l.base_rent, $3
+       FROM leases l
+       WHERE l.is_active = TRUE
+         AND NOT EXISTS (
+           SELECT 1 FROM ledger_invoices li
+           WHERE li.lease_id = l.id AND li.billing_month = $2
+         )
+       RETURNING id`,
+      [req.user.landlord_id, billing_month, dueDate.toISOString().split('T')[0]]
     );
 
-    if (leasesRes.rows.length === 0) {
-      return reply.code(200).send({ generated: 0, skipped: 0, message: 'No active leases found' });
-    }
+    const generated = result.rowCount;
 
-    let generated = 0;
-    let skipped = 0;
-    for (const lease of leasesRes.rows) {
-      const result = await queryWithRLS(
-        req.user.landlord_id,
-        `INSERT INTO ledger_invoices
-           (landlord_id, lease_id, tenant_id, billing_month, base_rent, amount_due, due_date)
-         VALUES ($1, $2, $3, $4, $5, $5, $6)
-         ON CONFLICT (lease_id, billing_month) DO NOTHING
-         RETURNING id`,
-        [req.user.landlord_id, lease.id, lease.tenant_id, billing_month, lease.base_rent, dueDate]
-      );
-      if (result.rows[0]) generated++;
-      else skipped++;
-    }
+    // Count how many were skipped (already existed)
+    const totalLeases = await queryWithRLS(
+      req.user.landlord_id,
+      `SELECT COUNT(*) AS cnt FROM leases WHERE is_active = TRUE`
+    );
+    const skipped = parseInt(totalLeases.rows[0].cnt) - generated;
 
     return reply.code(201).send({
       generated,

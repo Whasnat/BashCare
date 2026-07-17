@@ -106,7 +106,7 @@ export default async function tenantsRoutes(fastify) {
   fastify.post('/:id/create-login', auth, async (req, reply) => {
     const { email, password } = req.body;
     if (!email || !password) return reply.code(400).send({ error: 'email and password are required' });
-    if (password.length < 6) return reply.code(400).send({ error: 'Password must be at least 6 characters' });
+    if (password.length < 8) return reply.code(400).send({ error: 'Password must be at least 8 characters' });
 
     // Verify tenant belongs to this landlord
     const tenantRes = await queryWithRLS(
@@ -126,12 +126,12 @@ export default async function tenantsRoutes(fastify) {
     const hash = await bcrypt.hash(password, 12);
     try {
       await queryAdmin(
-        `INSERT INTO users (landlord_id, linked_entity_id, role, email, password_hash, full_name, is_active)
-         SELECT $1, tp.id, 'tenant', $2, $3, tp.full_name, TRUE
+        `INSERT INTO users (landlord_id, linked_entity_id, role, email, password_hash, full_name, is_active, must_change_password)
+         SELECT $1, tp.id, 'tenant', $2, $3, tp.full_name, TRUE, TRUE
          FROM tenant_profiles tp WHERE tp.id = $4`,
         [req.user.landlord_id, email, hash, req.params.id]
       );
-      return reply.code(201).send({ message: 'Tenant login created successfully' });
+      return reply.code(201).send({ message: 'Tenant login created successfully. They will be required to change their password on first login.' });
     } catch (err) {
       if (err.code === '23505') return reply.code(409).send({ error: 'This email is already in use' });
       throw err;

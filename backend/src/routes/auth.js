@@ -9,6 +9,9 @@ export default async function authRoutes(fastify) {
     if (!email || !password || !company_name) {
       return reply.code(400).send({ error: 'Missing required fields' });
     }
+    if (password.length < 8) {
+      return reply.code(400).send({ error: 'Password must be at least 8 characters' });
+    }
 
     const hash = await bcrypt.hash(password, 12);
 
@@ -90,6 +93,7 @@ export default async function authRoutes(fastify) {
         email: user.email,
         full_name: user.full_name,
         company_name: user.company_name,
+        must_change_password: user.must_change_password || false,
       },
     };
   });
@@ -98,6 +102,7 @@ export default async function authRoutes(fastify) {
   fastify.get('/me', { preHandler: [fastify.authenticate] }, async (request) => {
     const result = await queryAdmin(
       `SELECT u.id, u.email, u.full_name, u.role, u.phone_number,
+              u.must_change_password,
               lp.id AS landlord_id, lp.company_name, lp.plan_tier,
               lp.bkash_merchant_key IS NOT NULL AS has_bkash_merchant,
               lp.nagad_merchant_id IS NOT NULL AS has_nagad_merchant,
@@ -111,14 +116,52 @@ export default async function authRoutes(fastify) {
     return result.rows[0];
   });
 
-  // ─── Change Password ────────────────────────────────────────────────
+  // ─── Change Password (voluntary) ───────────────────────────────────
   fastify.patch('/password', { preHandler: [fastify.authenticate] }, async (request, reply) => {
     const { current_password, new_password } = request.body;
+    if (!current_password || !new_password) {
+      return reply.code(400).send({ error: 'Current and new passwords are required' });
+    }
+    if (new_password.length < 8) {
+      return reply.code(400).send({ error: 'New password must be at least 8 characters' });
+    }
     const result = await queryAdmin('SELECT password_hash FROM users WHERE id = $1', [request.user.id]);
     const valid = await bcrypt.compare(current_password, result.rows[0].password_hash);
     if (!valid) return reply.code(400).send({ error: 'Current password is incorrect' });
     const hash = await bcrypt.hash(new_password, 12);
-    await queryAdmin('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, request.user.id]);
+    await queryAdmin(
+      'UPDATE users SET password_hash = $1, password_changed_at = NOW() WHERE id = $2',
+      [hash, request.user.id]
+    );
     return { message: 'Password updated successfully' };
+  });
+
+  // ─── Force Change Password (mandatory first-login) ─────────────────
+  fastify.post('/force-change-password', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const { new_password } = request.body;
+    if (!new_password || new_password.length < 8) {
+      return reply.code(400).send({ error: 'Password must be at least 8 characters' });
+    }
+
+    // Verify this user actually needs to change password
+    const check = await queryAdmin(
+      'SELECT must_change_password FROM users WHERE id = $1',
+      [request.user.id]
+    );
+    if (!check.rows[0]?.must_change_password) {
+      return reply.code(400).send({ error: 'Password change is not required for this account' });
+    }
+
+    const hash = await bcrypt.hash(new_password, 12);
+    await queryAdmin(
+      `UPDATE users SET
+         password_hash = $1,
+         must_change_password = FALSE,
+         password_changed_at = NOW()
+       WHERE id = $2`,
+      [hash, request.user.id]
+    );
+
+    return { message: 'Password changed successfully. You may now use the application.' };
   });
 }
