@@ -137,31 +137,37 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
 
 // ─── Set Login Modal ──────────────────────────────────────────────────
 function SetLoginModal({ open, onClose, tenant, onCreated }) {
-  const [form, setForm] = useState({ email: '', password: '', confirm: '' });
+  const [form, setForm] = useState({ email: '', password: '', confirm: '', mode: 'invite', inviteLink: null });
   const [saving, setSaving] = useState(false);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     if (open && tenant) {
-      setForm({ email: tenant.email || '', password: '', confirm: '' });
+      setForm({ email: tenant.email || '', password: '', confirm: '', mode: 'invite', inviteLink: null });
     }
   }, [open, tenant]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password !== form.confirm) return toast.error('Passwords do not match');
-    if (form.password.length < 6) return toast.error('Password must be at least 6 characters');
+    if (form.mode === 'direct' && form.password !== form.confirm) return toast.error('Passwords do not match');
+    if (form.mode === 'direct' && form.password.length < 8) return toast.error('Password must be at least 8 characters');
     setSaving(true);
     try {
-      await api.post(`/tenants/${tenant.id}/create-login`, {
-        email: form.email,
-        password: form.password,
-      });
-      toast.success(`Login created for ${tenant.full_name}`);
-      onCreated();
-      onClose();
+      if (form.mode === 'invite') {
+        const { data } = await api.post(`/tenants/${tenant.id}/invite`, { email: form.email });
+        setForm(f => ({ ...f, inviteLink: data.setupLink }));
+        toast.success(`Invite link generated for ${tenant.full_name}`);
+      } else {
+        await api.post(`/tenants/${tenant.id}/create-login`, {
+          email: form.email,
+          password: form.password,
+        });
+        toast.success(`Login created for ${tenant.full_name}`);
+        onCreated();
+        onClose();
+      }
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to create login');
+      toast.error(err.response?.data?.error || 'Failed to process request');
     } finally {
       setSaving(false);
     }
@@ -169,7 +175,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
 
   if (!open || !tenant) return null;
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" onClick={onClose}>
       <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
@@ -180,56 +186,100 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
           </div>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{
-              background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)',
-              borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: 'var(--text-secondary)',
-            }}>
-              <KeyRound size={13} style={{ display: 'inline', marginRight: 6, color: 'var(--accent-primary)' }} />
-              The tenant will use these credentials to log in to the BashaCare tenant portal.
-            </div>
-            <div className="form-group">
-              <label className="form-label">Login Email *</label>
-              <input
-                type="email" className="form-input" placeholder="tenant@example.com"
-                value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password *</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={show ? 'text' : 'password'} className="form-input"
-                  placeholder="Min. 6 characters"
-                  value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
-                  required style={{ paddingRight: 80 }}
-                />
-                <button type="button" onClick={() => setShow(s => !s)}
-                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.73rem' }}>
-                  {show ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Confirm Password *</label>
-              <input
-                type={show ? 'text' : 'password'} className="form-input"
-                placeholder="Re-enter password"
-                value={form.confirm} onChange={(e) => setForm(f => ({ ...f, confirm: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" /> : null}
-              <KeyRound size={14} /> Create Login
+
+        {!form.inviteLink && (
+          <div style={{ padding: '0 20px', display: 'flex', gap: 10, borderBottom: '1px solid var(--border-color)' }}>
+            <button 
+              className={`tab-btn ${form.mode === 'invite' ? 'active' : ''}`} 
+              onClick={() => setForm(prev => ({ ...prev, mode: 'invite' }))}
+              style={{ padding: '12px 0' }}
+            >
+              Generate Invite Link
+            </button>
+            <button 
+              className={`tab-btn ${form.mode === 'direct' ? 'active' : ''}`} 
+              onClick={() => setForm(prev => ({ ...prev, mode: 'direct' }))}
+              style={{ padding: '12px 0' }}
+            >
+              Direct Setup
             </button>
           </div>
-        </form>
+        )}
+
+        {form.inviteLink ? (
+          <div className="modal-body" style={{ textAlign: 'center', padding: '30px 20px' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <KeyRound size={24} />
+            </div>
+            <h3 style={{ marginBottom: 8 }}>Invite Link Generated!</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 20, fontSize: '0.9rem' }}>
+              Share this secure link with the tenant. They will be able to set their own password and activate their account.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="form-input" readOnly value={form.inviteLink} style={{ flex: 1, background: 'var(--bg-elevated)', fontFamily: 'monospace', fontSize: '0.85rem' }} />
+              <button className="btn btn-primary" onClick={() => {
+                navigator.clipboard.writeText(form.inviteLink);
+                toast.success('Copied to clipboard');
+              }}>Copy</button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '20px' }}>
+              <div style={{
+                background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.2)',
+                borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: 'var(--text-secondary)',
+              }}>
+                <KeyRound size={13} style={{ display: 'inline', marginRight: 6, color: 'var(--accent-primary)' }} />
+                The tenant will use these credentials to log in to the BashaCare tenant portal.
+              </div>
+              <div className="form-group">
+                <label className="form-label">Login Email *</label>
+                <input
+                  type="email" className="form-input" placeholder="tenant@example.com"
+                  value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+                  required
+                />
+              </div>
+              
+              {form.mode === 'direct' && (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Temporary Password *</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={show ? 'text' : 'password'} className="form-input"
+                        placeholder="Min. 8 characters" minLength={8}
+                        value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
+                        required style={{ paddingRight: 80 }}
+                      />
+                      <button type="button" onClick={() => setShow(s => !s)}
+                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.73rem' }}>
+                        {show ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Confirm Password *</label>
+                    <input
+                      type={show ? 'text' : 'password'} className="form-input"
+                      placeholder="Re-enter password" minLength={8}
+                      value={form.confirm} onChange={(e) => setForm(f => ({ ...f, confirm: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '16px 20px' }}>
+              <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? <span className="spinner" /> : null}
+                {form.mode === 'invite' ? <><Mail size={14} /> Generate Link</> : <><KeyRound size={14} /> Create Login</>}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

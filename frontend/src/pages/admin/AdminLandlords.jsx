@@ -15,7 +15,8 @@ export default function AdminLandlords() {
   const [showDetail, setShowDetail] = useState(null); // landlord object or null
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({
-    company_name: '', email: '', password: '', full_name: '', contact_phone: ''
+    company_name: '', email: '', password: '', full_name: '', contact_phone: '',
+    mode: 'invite', inviteLink: null
   });
   const [creating, setCreating] = useState(false);
 
@@ -277,48 +278,112 @@ export default function AdminLandlords() {
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Create Landlord Account</h2>
+              <h2>Add Landlord</h2>
               <button className="btn-icon btn-ghost" onClick={() => setShowCreate(false)}><X size={18} /></button>
             </div>
-            <form onSubmit={handleCreate}>
-              <div className="modal-body">
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Company Name *</label>
-                    <input className="form-input" required value={createForm.company_name}
-                      onChange={(e) => setCreateForm({ ...createForm, company_name: e.target.value })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Full Name</label>
-                    <input className="form-input" value={createForm.full_name}
-                      onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Email Address *</label>
-                    <input className="form-input" type="email" required value={createForm.email}
-                      onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone</label>
-                    <input className="form-input" value={createForm.contact_phone}
-                      onChange={(e) => setCreateForm({ ...createForm, contact_phone: e.target.value })} />
-                  </div>
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label className="form-label">Password *</label>
-                    <input className="form-input" type="password" required minLength={8} value={createForm.password}
-                      onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                      placeholder="Minimum 8 characters" />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={creating}>
-                  {creating ? <span className="spinner" style={{ width: 14, height: 14 }} /> : <Plus size={15} />}
-                  Create Account
+            
+            {!createForm.inviteLink && (
+              <div style={{ padding: '0 20px', display: 'flex', gap: 10, borderBottom: '1px solid var(--border-color)' }}>
+                <button 
+                  className={`tab-btn ${createForm.mode === 'invite' ? 'active' : ''}`} 
+                  onClick={() => setCreateForm(prev => ({ ...prev, mode: 'invite' }))}
+                  style={{ padding: '12px 0' }}
+                >
+                  Generate Invite Link
+                </button>
+                <button 
+                  className={`tab-btn ${createForm.mode === 'direct' ? 'active' : ''}`} 
+                  onClick={() => setCreateForm(prev => ({ ...prev, mode: 'direct' }))}
+                  style={{ padding: '12px 0' }}
+                >
+                  Direct Setup
                 </button>
               </div>
-            </form>
+            )}
+
+            {createForm.inviteLink ? (
+              <div className="modal-body" style={{ textAlign: 'center', padding: '30px 20px' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <CheckCircle2 size={24} />
+                </div>
+                <h3 style={{ marginBottom: 8 }}>Invite Link Generated!</h3>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: 20, fontSize: '0.9rem' }}>
+                  Share this secure link with the landlord. They will be able to set their own password and activate their account.
+                </p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input className="form-input" readOnly value={createForm.inviteLink} style={{ flex: 1, background: 'var(--bg-elevated)', fontFamily: 'monospace', fontSize: '0.85rem' }} />
+                  <button className="btn btn-primary" onClick={() => {
+                    navigator.clipboard.writeText(createForm.inviteLink);
+                    toast.success('Copied to clipboard');
+                  }}>Copy</button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (createForm.mode === 'direct' && createForm.password.length < 8) {
+                  return toast.error('Password must be at least 8 characters');
+                }
+                setCreating(true);
+                try {
+                  if (createForm.mode === 'invite') {
+                    const { data } = await api.post('/admin/landlords/invite', createForm);
+                    setCreateForm(prev => ({ ...prev, inviteLink: data.setupLink }));
+                    toast.success('Invite link generated');
+                  } else {
+                    await api.post('/admin/landlords', createForm);
+                    toast.success('Landlord account created successfully');
+                    setShowCreate(false);
+                    setCreateForm({ company_name: '', email: '', password: '', full_name: '', contact_phone: '', mode: 'invite' });
+                  }
+                  fetchLandlords();
+                } catch (err) {
+                  toast.error(err.response?.data?.error || 'Failed to process request');
+                } finally {
+                  setCreating(false);
+                }
+              }}>
+                <div className="modal-body">
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label className="form-label">Company Name *</label>
+                      <input className="form-input" required value={createForm.company_name}
+                        onChange={(e) => setCreateForm({ ...createForm, company_name: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Full Name</label>
+                      <input className="form-input" value={createForm.full_name}
+                        onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })} />
+                    </div>
+                    <div className="form-group" style={{ gridColumn: createForm.mode === 'invite' ? '1 / -1' : 'auto' }}>
+                      <label className="form-label">Email Address *</label>
+                      <input className="form-input" type="email" required value={createForm.email}
+                        onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Phone</label>
+                      <input className="form-input" value={createForm.contact_phone}
+                        onChange={(e) => setCreateForm({ ...createForm, contact_phone: e.target.value })} />
+                    </div>
+                    {createForm.mode === 'direct' && (
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">Temporary Password *</label>
+                        <input className="form-input" type="password" required minLength={8} value={createForm.password}
+                          onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                          placeholder="Minimum 8 characters" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={creating}>
+                    {creating ? <span className="spinner" style={{ width: 14, height: 14 }} /> : (createForm.mode === 'invite' ? <Mail size={15} /> : <Plus size={15} />)}
+                    {createForm.mode === 'invite' ? 'Generate Link' : 'Create Account'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

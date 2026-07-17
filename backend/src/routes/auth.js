@@ -174,4 +174,78 @@ export default async function authRoutes(fastify) {
     fastify.log.info({ email }, 'Password reset requested (no email integration — admin must manually reset)');
     return { message: 'If an account with that email exists, instructions have been sent.' };
   });
+
+  // ─── Get Invite Info ────────────────────────────────────────────────
+  fastify.get('/invite-info', async (request, reply) => {
+    const { token } = request.query;
+    if (!token) return reply.code(400).send({ error: 'Token is required' });
+
+    const result = await queryAdmin(
+      `SELECT u.email, u.full_name, u.role, lp.company_name
+       FROM users u
+       LEFT JOIN landlord_profiles lp ON lp.id = u.landlord_id
+       WHERE u.invite_token = $1
+         AND u.invite_token_expires_at > NOW()
+         AND u.is_active = FALSE`,
+      [token]
+    );
+
+    if (!result.rows[0]) {
+      return reply.code(400).send({ error: 'Invalid or expired invite link' });
+    }
+    return result.rows[0];
+  });
+
+  // ─── Accept Invite ──────────────────────────────────────────────────
+  fastify.post('/accept-invite', async (request, reply) => {
+    const { token, password, company_name, full_name } = request.body;
+    if (!token || !password) return reply.code(400).send({ error: 'Token and password are required' });
+    if (password.length < 8) return reply.code(400).send({ error: 'Password must be at least 8 characters' });
+
+    const result = await queryAdmin(
+      `SELECT id, role, landlord_id FROM users
+       WHERE invite_token = $1
+         AND invite_token_expires_at > NOW()
+         AND is_active = FALSE`,
+      [token]
+    );
+
+    if (!result.rows[0]) {
+      return reply.code(400).send({ error: 'Invalid or expired invite link' });
+    }
+
+    const user = result.rows[0];
+    const hash = await bcrypt.hash(password, 12);
+
+    try {
+      // Begin transaction manually if needed, or rely on individual queries. 
+      // We'll update the user and the landlord profile.
+      await queryAdmin(
+        `UPDATE users
+         SET password_hash = $1,
+             full_name = COALESCE($2, full_name),
+             is_active = TRUE,
+             invite_token = NULL,
+             invite_token_expires_at = NULL,
+             password_changed_at = NOW()
+         WHERE id = $3`,
+        [hash, full_name || null, user.id]
+      );
+
+      // If user is a landlord and they provided a company name, update the profile and activate it
+      if (user.role === 'landlord') {
+        await queryAdmin(
+          `UPDATE landlord_profiles
+           SET is_active = TRUE,
+               company_name = COALESCE($1, company_name)
+           WHERE id = $2`,
+          [company_name || null, user.landlord_id]
+        );
+      }
+
+      return reply.code(200).send({ message: 'Account activated successfully. You can now log in.' });
+    } catch (err) {
+      throw err;
+    }
+  });
 }

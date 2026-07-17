@@ -138,6 +138,46 @@ export default async function tenantsRoutes(fastify) {
     }
   });
 
+  // ─── Invite a tenant (generates setup link) ───────────────────────────
+  fastify.post('/:id/invite', auth, async (req, reply) => {
+    const { email } = req.body;
+    if (!email) return reply.code(400).send({ error: 'Email is required' });
+
+    // Verify tenant belongs to this landlord
+    const tenantRes = await queryWithRLS(
+      req.user.landlord_id,
+      `SELECT id, landlord_id, full_name FROM tenant_profiles WHERE id = $1`,
+      [req.params.id]
+    );
+    if (!tenantRes.rows[0]) return reply.code(404).send({ error: 'Tenant not found' });
+
+    // Check for existing login
+    const existingRes = await queryAdmin(
+      `SELECT id FROM users WHERE linked_entity_id = $1 AND role = 'tenant'`,
+      [req.params.id]
+    );
+    if (existingRes.rows[0]) return reply.code(409).send({ error: 'This tenant already has a login account' });
+
+    const { randomBytes } = await import('crypto');
+    const inviteToken = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    try {
+      await queryAdmin(
+        `INSERT INTO users (landlord_id, linked_entity_id, role, email, full_name, invite_token, invite_token_expires_at, invited_by, is_active)
+         VALUES ($1, $2, 'tenant', $3, $4, $5, $6, $7, FALSE)`,
+        [req.user.landlord_id, req.params.id, email, tenantRes.rows[0].full_name, inviteToken, expiresAt.toISOString(), req.user.id]
+      );
+      
+      const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/setup?token=${inviteToken}`;
+      return reply.code(201).send({ message: 'Invite link generated', setupLink });
+    } catch (err) {
+      if (err.code === '23505') return reply.code(409).send({ error: 'This email is already in use' });
+      throw err;
+    }
+  });
+
   // ─── Delete a tenant (only if no active lease) ────────────────────────
   fastify.delete('/:id', auth, async (req, reply) => {
     // Block deletion if active lease exists

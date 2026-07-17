@@ -13,6 +13,7 @@ const Register = lazy(() => import('./pages/auth/Register'));
 const ForcePasswordChange = lazy(() => import('./pages/auth/ForcePasswordChange'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
+const SetupAccount = lazy(() => import('./pages/auth/SetupAccount'));
 
 // Landlord Pages
 const Dashboard = lazy(() => import('./pages/landlord/Dashboard'));
@@ -149,6 +150,7 @@ function App() {
             <Route path="/force-change-password" element={<ForcePasswordChange />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/setup" element={<SetupAccount />} />
 
             {/* Landlord & Manager Routes */}
             <Route path="/" element={<ProtectedRoute allowedRoles={['landlord', 'manager']}><Layout /></ProtectedRoute>}>

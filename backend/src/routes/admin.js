@@ -67,6 +67,50 @@ export default async function adminRoutes(fastify) {
     }
   });
 
+  // ─── Invite landlord (generates setup link) ─────────────────────────
+  fastify.post('/landlords/invite', adminOnly, async (req, reply) => {
+    const { company_name, email, full_name, contact_phone } = req.body;
+    if (!company_name || !email) {
+      return reply.code(400).send({ error: 'company_name and email are required' });
+    }
+
+    const { randomBytes } = await import('crypto');
+    const inviteToken = randomBytes(32).toString('hex');
+    // Expires in 7 days
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    try {
+      // Pre-create landlord profile (pending activation via setup)
+      const landlordResult = await queryAdmin(
+        `INSERT INTO landlord_profiles (company_name, contact_email, contact_phone, is_active)
+         VALUES ($1, $2, $3, FALSE) RETURNING id`,
+        [company_name, email, contact_phone]
+      );
+      const landlordId = landlordResult.rows[0].id;
+
+      // Create pending user account with token
+      await queryAdmin(
+        `INSERT INTO users (landlord_id, role, email, full_name, invite_token, invite_token_expires_at, invited_by, is_active)
+         VALUES ($1, 'landlord', $2, $3, $4, $5, $6, FALSE)`,
+        [landlordId, email, full_name || company_name, inviteToken, expiresAt.toISOString(), req.user.id]
+      );
+
+      // In a real app, send an email here. We just return the link for the admin to copy.
+      const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/setup?token=${inviteToken}`;
+      
+      return reply.code(201).send({
+        message: 'Invite link generated',
+        setupLink,
+      });
+    } catch (err) {
+      if (err.code === '23505') {
+        return reply.code(409).send({ error: 'An account with this email already exists' });
+      }
+      throw err;
+    }
+  });
+
   // ─── Approve a landlord ─────────────────────────────────────────────
   fastify.patch('/landlords/:id/approve', adminOnly, async (req, reply) => {
     const result = await queryAdmin(
