@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Receipt, Plus, Search, X, ChevronDown, Zap, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Receipt, Plus, Search, X, ChevronDown, Zap, CheckCircle2, AlertTriangle, RefreshCw, Download } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import html2pdf from 'html2pdf.js';
+import InvoicePDF from '../../components/InvoicePDF';
+import useAuthStore from '../../store/authStore';
 
 const STATUS_BADGE = {
   PAID: 'badge-paid',
@@ -248,6 +251,31 @@ export default function Billing() {
   const [generatingAll, setGeneratingAll] = useState(false);
   const [markingOverdue, setMarkingOverdue] = useState(false);
 
+  const { user } = useAuthStore();
+  const pdfRef = useRef(null);
+  const [pdfInvoice, setPdfInvoice] = useState(null);
+
+  useEffect(() => {
+    if (pdfInvoice && pdfRef.current) {
+      const opt = {
+        margin:       0,
+        filename:     `Invoice-INV${String(pdfInvoice.id).padStart(6, '0')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      
+      const toastId = toast.loading('Generating PDF...');
+      html2pdf().set(opt).from(pdfRef.current).save().then(() => {
+        toast.success('Invoice downloaded', { id: toastId });
+        setPdfInvoice(null);
+      }).catch((err) => {
+        toast.error('Failed to generate PDF', { id: toastId });
+        setPdfInvoice(null);
+      });
+    }
+  }, [pdfInvoice]);
+
   const handleGenerateAll = async () => {
     if (!window.confirm('Generate invoices for ALL active leases for the current month?')) return;
     setGeneratingAll(true);
@@ -461,6 +489,13 @@ export default function Billing() {
                         </button>
                       </>
                     )}
+                    <button
+                      className="btn btn-ghost btn-sm btn-icon"
+                      title="Download PDF"
+                      onClick={() => setPdfInvoice(inv)}
+                    >
+                      <Download size={15} />
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -487,6 +522,10 @@ export default function Billing() {
         onClose={() => setAdjustTarget(null)}
         onAdjusted={() => fetchData()}
       />
+      
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        <InvoicePDF ref={pdfRef} invoice={pdfInvoice} landlord={user} />
+      </div>
     </div>
   );
 }
