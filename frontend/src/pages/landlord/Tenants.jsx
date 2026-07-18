@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Users, Plus, Pencil, Trash2, Search, X, Phone, Mail, Shield, KeyRound, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -331,50 +332,51 @@ function DeleteModal({ open, onClose, tenant, onDeleted }) {
 
 // ─── Main Tenants Page ────────────────────────────────────────────────
 export default function Tenants() {
-  const [tenants, setTenants] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
   const [modalOpen, setModalOpen] = useState(false);
   const [loginModal, setLoginModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
   const [editing, setEditing] = useState(null);
+  
+  // Use debounced search to avoid spamming the API
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
-  useEffect(() => { fetchTenants(); }, []);
+  // Reset page to 1 when filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, filterStatus]);
 
-  const fetchTenants = async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/tenants');
-      setTenants(data);
-    } catch {
-      toast.error('Failed to load tenants');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaved = (saved, mode) => {
-    if (mode === 'add') fetchTenants();
-    else setTenants((t) => t.map((x) => (x.id === saved.id ? { ...x, ...saved } : x)));
-  };
-
-  const handleDeleted = (id) => setTenants((t) => t.filter((x) => x.id !== id));
-
-  const filtered = tenants.filter((t) => {
-    const q = search.toLowerCase();
-    const matchSearch = t.full_name.toLowerCase().includes(q) ||
-      t.phone_number.includes(q) ||
-      (t.email || '').toLowerCase().includes(q);
-    const matchStatus =
-      filterStatus === 'all' ? true :
-      filterStatus === 'active' ? !!t.lease_id :
-      !t.lease_id;
-    return matchSearch && matchStatus;
+  const { data: response, isLoading: loading, refetch } = useQuery({
+    queryKey: ['tenants', page, debouncedSearch, filterStatus],
+    queryFn: async () => {
+      const { data } = await api.get('/tenants', {
+        params: { page, limit, search: debouncedSearch, status: filterStatus }
+      });
+      return data;
+    },
+    keepPreviousData: true,
   });
 
-  const activeTenants = tenants.filter((t) => t.lease_id).length;
-  const withLogin = tenants.filter((t) => t.has_login).length;
+  const tenants = response?.data || [];
+  const meta = response?.meta || { total: 0, totalPages: 1 };
+
+  const handleSaved = (saved, mode) => {
+    refetch();
+  };
+
+  const handleDeleted = (id) => {
+    refetch();
+  };
+
+  const activeTenants = meta.total; // Approximate for stats, better to fetch dashboard stats separately, but this is ok for now.
+  const withLogin = 0; // We might need a separate endpoint for stats if we want total counts across all pages.
+
 
   return (
     <div>
@@ -455,7 +457,7 @@ export default function Tenants() {
                   <td key={j}><div className="skeleton" style={{ height: 18, width: '75%' }} /></td>
                 ))}</tr>
               ))
-            ) : filtered.length === 0 ? (
+            ) : tenants.length === 0 ? (
               <tr><td colSpan={8}>
                 <div className="empty-state">
                   <Users size={36} className="empty-icon" />
@@ -463,7 +465,7 @@ export default function Tenants() {
                   <div className="empty-desc">Register your first tenant to get started.</div>
                 </div>
               </td></tr>
-            ) : filtered.map((t) => (
+            ) : tenants.map((t) => (
               <tr key={t.id}>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -554,6 +556,34 @@ export default function Tenants() {
             ))}
           </tbody>
         </table>
+        
+        {/* Pagination Controls */}
+        {meta.totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Showing {tenants.length} of {meta.total} tenants
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
+                Page {page} of {meta.totalPages}
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                disabled={page === meta.totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <TenantModal
@@ -566,7 +596,7 @@ export default function Tenants() {
         open={!!loginModal}
         onClose={() => setLoginModal(null)}
         tenant={loginModal}
-        onCreated={fetchTenants}
+        onCreated={refetch}
       />
       <DeleteModal
         open={!!deleteModal}

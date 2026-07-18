@@ -4,8 +4,11 @@ export default async function leasesRoutes(fastify) {
   const auth = { preHandler: [fastify.authenticate] };
 
   fastify.get('/', auth, async (req) => {
-    const { is_active } = req.query;
+    const { is_active, search = '', page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
     let query = `SELECT l.*,
+                        COUNT(*) OVER() AS total_count,
                         u.unit_number, p.name AS property_name,
                         tp.full_name AS tenant_name, tp.phone_number AS tenant_phone
                  FROM leases l
@@ -15,9 +18,29 @@ export default async function leasesRoutes(fastify) {
                  WHERE 1=1`;
     const params = [];
     if (is_active !== undefined) { params.push(is_active === 'true'); query += ` AND l.is_active = $${params.length}`; }
-    query += ' ORDER BY l.created_at DESC';
+    if (search) {
+      params.push(`%${search}%`);
+      query += ` AND (tp.full_name ILIKE $${params.length} OR u.unit_number ILIKE $${params.length})`;
+    }
+    
+    query += ` ORDER BY l.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
     const result = await queryWithRLS(req.user.landlord_id, query, params);
-    return result.rows;
+    const total = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    
+    // Remove total_count from individual rows to clean up response
+    const data = result.rows.map(({ total_count, ...row }) => row);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   });
 
   fastify.get('/:id', auth, async (req, reply) => {

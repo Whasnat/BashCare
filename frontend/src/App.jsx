@@ -1,8 +1,19 @@
 import { useEffect, Component, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import useAuthStore from './store/authStore';
 import useThemeStore from './store/themeStore';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Don't refetch on every window focus by default
+      retry: 1, // Only retry failed requests once
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    },
+  },
+});
 
 // Layouts (loaded eagerly — needed immediately)
 import Layout from './components/Layout';
@@ -134,61 +145,66 @@ function App() {
   }, [hydrateAuth, hydrateTheme]);
 
   return (
-    <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Toaster position="top-right" toastOptions={{
-          style: {
-            background: 'var(--toast-bg)',
-            color: 'var(--toast-text)',
-            border: '1px solid var(--toast-border)',
-          }
-        }} />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/force-change-password" element={<ForcePasswordChange />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/setup" element={<SetupAccount />} />
+        <ErrorBoundary>
+          <Toaster 
+            position="top-center" 
+            toastOptions={{
+              style: {
+                background: 'var(--bg-elevated)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)'
+              }
+            }}
+          />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/force-change-password" element={<ForcePasswordChange />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/setup" element={<SetupAccount />} />
 
-            {/* Landlord & Manager Routes */}
-            <Route path="/" element={<ProtectedRoute allowedRoles={['landlord', 'manager']}><Layout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="properties" element={<Properties />} />
-              <Route path="units" element={<Units />} />
-              <Route path="tenants" element={<Tenants />} />
-              <Route path="leases" element={<Leases />} />
-              <Route path="billing" element={<Billing />} />
-              <Route path="payments" element={<Payments />} />
-              <Route path="utilities" element={<Utilities />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
+              {/* Landlord & Manager Routes */}
+              <Route path="/" element={<ProtectedRoute allowedRoles={['landlord', 'manager']}><Layout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="properties" element={<Properties />} />
+                <Route path="units" element={<Units />} />
+                <Route path="tenants" element={<Tenants />} />
+                <Route path="leases" element={<Leases />} />
+                <Route path="billing" element={<Billing />} />
+                <Route path="payments" element={<Payments />} />
+                <Route path="utilities" element={<Utilities />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><Layout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="landlords" element={<AdminLandlords />} />
-              <Route path="users" element={<AdminUsers />} />
-            </Route>
+              {/* Admin Routes */}
+              <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><Layout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="landlords" element={<AdminLandlords />} />
+                <Route path="users" element={<AdminUsers />} />
+              </Route>
 
-            {/* Tenant Portal Routes */}
-            <Route path="/portal" element={<ProtectedRoute allowedRoles={['tenant']}><Layout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/portal/dashboard" replace />} />
-              <Route path="dashboard" element={<TenantDashboard />} />
-              <Route path="invoices" element={<TenantInvoices />} />
-              <Route path="invoices/:id" element={<TenantInvoiceDetail />} />
-            </Route>
+              {/* Tenant Portal Routes */}
+              <Route path="/portal" element={<ProtectedRoute allowedRoles={['tenant']}><Layout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="/portal/dashboard" replace />} />
+                <Route path="dashboard" element={<TenantDashboard />} />
+                <Route path="invoices" element={<TenantInvoices />} />
+                <Route path="invoices/:id" element={<TenantInvoiceDetail />} />
+              </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
-    </ErrorBoundary>
+    </QueryClientProvider>
   );
 }
 

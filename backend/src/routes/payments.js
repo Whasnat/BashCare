@@ -159,8 +159,11 @@ export default async function paymentsRoutes(fastify) {
 
   // Full payment history with optional status filter
   fastify.get('/all', auth, async (req) => {
-    const { status } = req.query;
+    const { status, search = '', page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
     let query = `SELECT pt.*, tp.full_name AS tenant_name, tp.phone_number AS tenant_phone,
+              COUNT(*) OVER() AS total_count,
               li.billing_month, u.unit_number, p.name AS property_name
        FROM payment_transactions pt
        JOIN tenant_profiles tp ON tp.id = pt.tenant_id
@@ -171,8 +174,28 @@ export default async function paymentsRoutes(fastify) {
        WHERE 1=1`;
     const params = [];
     if (status) { params.push(status); query += ` AND pt.status = $${params.length}`; }
-    query += ' ORDER BY pt.created_at DESC LIMIT 200';
+    if (search) {
+      params.push(`%${search}%`);
+      query += ` AND (tp.full_name ILIKE $${params.length} OR u.unit_number ILIKE $${params.length} OR pt.transaction_id ILIKE $${params.length})`;
+    }
+    
+    query += ` ORDER BY pt.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
     const result = await queryWithRLS(req.user.landlord_id, query, params);
-    return result.rows;
+    const total = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    
+    // Remove total_count from individual rows
+    const data = result.rows.map(({ total_count, ...row }) => row);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   });
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Receipt, Plus, Search, X, ChevronDown, Zap, CheckCircle2, AlertTriangle, RefreshCw, Download } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -240,11 +241,12 @@ function AdjustModal({ open, invoice, onClose, onAdjusted }) {
 }
 
 export default function Billing() {
-  const [invoices, setInvoices] = useState([]);
   const [leases, setLeases] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
   const [genModalOpen, setGenModalOpen] = useState(false);
   const [cashTarget, setCashTarget] = useState(null);
   const [adjustTarget, setAdjustTarget] = useState(null);
@@ -254,6 +256,41 @@ export default function Billing() {
   const { user } = useAuthStore();
   const pdfRef = useRef(null);
   const [pdfInvoice, setPdfInvoice] = useState(null);
+
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, filterStatus]);
+
+  const { data: response, isLoading: loading, refetch } = useQuery({
+    queryKey: ['invoices', page, debouncedSearch, filterStatus],
+    queryFn: async () => {
+      const { data } = await api.get('/invoices', {
+        params: { page, limit, search: debouncedSearch, status: filterStatus }
+      });
+      return data;
+    },
+    keepPreviousData: true,
+  });
+
+  const invoices = response?.data || [];
+  const meta = response?.meta || { total: 0, totalPages: 1 };
+
+  const fetchLeases = useCallback(async () => {
+    try {
+      const { data } = await api.get('/leases?is_active=true');
+      setLeases(data.data || data); // handle paginated and non-paginated responses
+    } catch {
+      toast.error('Failed to load leases');
+    }
+  }, []);
+
+  useEffect(() => { fetchLeases(); }, [fetchLeases]);
 
   useEffect(() => {
     if (pdfInvoice && pdfRef.current) {
@@ -282,7 +319,7 @@ export default function Billing() {
     try {
       const { data } = await api.post('/invoices/generate-all');
       toast.success(data.message);
-      fetchData();
+      refetch();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to generate invoices');
     } finally {
@@ -296,7 +333,7 @@ export default function Billing() {
       const { data } = await api.post('/invoices/mark-overdue');
       if (data.updated > 0) {
         toast.success(`${data.updated} invoice(s) marked as Overdue`);
-        fetchData();
+        refetch();
       } else {
         toast('No overdue invoices found', { icon: '✅' });
       }
@@ -306,32 +343,6 @@ export default function Billing() {
       setMarkingOverdue(false);
     }
   };
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [invRes, leasesRes] = await Promise.all([
-        api.get('/invoices'),
-        api.get('/leases?is_active=true'),
-      ]);
-      setInvoices(invRes.data);
-      setLeases(leasesRes.data);
-    } catch {
-      toast.error('Failed to load invoices');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const filtered = invoices.filter((i) => {
-    const q = search.toLowerCase();
-    const matchSearch = (i.tenant_name || '').toLowerCase().includes(q) ||
-      (i.unit_number || '').toLowerCase().includes(q);
-    const matchStatus = !filterStatus || i.status === filterStatus;
-    return matchSearch && matchStatus;
-  });
 
   const formatMonth = (d) => d ? new Date(d).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : '—';
 
@@ -368,7 +379,7 @@ export default function Billing() {
       <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 24 }}>
         <div className="stat-card teal">
           <div className="stat-content">
-            <div className="stat-value">{invoices.length}</div>
+            <div className="stat-value">{meta.total}</div>
             <div className="stat-label">Total Invoices</div>
           </div>
           <div className="stat-icon teal"><Receipt size={22} /></div>
@@ -442,7 +453,7 @@ export default function Billing() {
                   <td key={j}><div className="skeleton" style={{ height: 18, width: '80%' }} /></td>
                 ))}</tr>
               ))
-            ) : filtered.length === 0 ? (
+            ) : invoices.length === 0 ? (
               <tr><td colSpan={9}>
                 <div className="empty-state">
                   <Receipt size={36} className="empty-icon" />
@@ -450,7 +461,7 @@ export default function Billing() {
                   <div className="empty-desc">Generate invoices for your active leases.</div>
                 </div>
               </td></tr>
-            ) : filtered.map((inv) => (
+            ) : invoices.map((inv) => (
               <tr key={inv.id}>
                 <td>
                   <div style={{ fontWeight: 700 }}>{inv.tenant_name}</div>
@@ -502,6 +513,34 @@ export default function Billing() {
             ))}
           </tbody>
         </table>
+
+        {/* Pagination Controls */}
+        {meta.totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Showing {invoices.length} of {meta.total} invoices
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
+                Page {page} of {meta.totalPages}
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                disabled={page === meta.totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <GenerateModal

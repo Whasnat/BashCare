@@ -4,8 +4,11 @@ export default async function invoicesRoutes(fastify) {
   const auth = { preHandler: [fastify.authenticate] };
 
   fastify.get('/', auth, async (req) => {
-    const { status, tenant_id, month } = req.query;
+    const { status, tenant_id, month, search = '', page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
     let query = `SELECT i.*, ict.total_calculated_due, ict.balance_remaining, ict.total_adjustments,
+                        COUNT(*) OVER() AS total_count,
                         tp.full_name AS tenant_name, tp.phone_number AS tenant_phone,
                         u.unit_number, p.name AS property_name
                  FROM ledger_invoices i
@@ -19,9 +22,29 @@ export default async function invoicesRoutes(fastify) {
     if (status) { params.push(status); query += ` AND i.status = $${params.length}`; }
     if (tenant_id) { params.push(tenant_id); query += ` AND i.tenant_id = $${params.length}`; }
     if (month) { params.push(month); query += ` AND i.billing_month = $${params.length}`; }
-    query += ' ORDER BY i.billing_month DESC, tp.full_name';
+    if (search) {
+      params.push(`%${search}%`);
+      query += ` AND (tp.full_name ILIKE $${params.length} OR u.unit_number ILIKE $${params.length})`;
+    }
+    
+    query += ` ORDER BY i.billing_month DESC, tp.full_name LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
     const result = await queryWithRLS(req.user.landlord_id, query, params);
-    return result.rows;
+    const total = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    
+    // Remove total_count from individual rows to clean up response
+    const data = result.rows.map(({ total_count, ...row }) => row);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   });
 
   fastify.get('/:id', auth, async (req, reply) => {

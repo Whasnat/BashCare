@@ -31,9 +31,11 @@ export default async function tenantsRoutes(fastify) {
   const auth = { preHandler: [fastify.authenticate] };
 
   fastify.get('/', auth, async (req) => {
-    const result = await queryWithRLS(
-      req.user.landlord_id,
-      `SELECT tp.*,
+    const { page = 1, limit = 50, search = '', status = 'all' } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `SELECT tp.*,
+              COUNT(*) OVER() AS total_count,
               l.id AS lease_id, l.is_active,
               u.unit_number, p.name AS property_name,
               l.base_rent,
@@ -42,10 +44,43 @@ export default async function tenantsRoutes(fastify) {
        LEFT JOIN leases l ON l.tenant_id = tp.id AND l.is_active = TRUE
        LEFT JOIN units u ON u.id = l.unit_id
        LEFT JOIN properties p ON p.id = u.property_id
-       ORDER BY tp.full_name`
-    );
-    // Mask NID in list view
-    return result.rows.map(r => ({ ...r, encrypted_national_id: r.encrypted_national_id ? '***ENCRYPTED***' : null }));
+       WHERE 1=1`;
+       
+    const params = [];
+    
+    if (search) {
+      params.push(`%${search}%`);
+      query += ` AND (tp.full_name ILIKE $${params.length} OR tp.phone_number ILIKE $${params.length} OR tp.email ILIKE $${params.length})`;
+    }
+
+    if (status === 'active') {
+      query += ` AND l.id IS NOT NULL`;
+    } else if (status === 'inactive') {
+      query += ` AND l.id IS NULL`;
+    }
+
+    query += ` ORDER BY tp.full_name LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
+    const result = await queryWithRLS(req.user.landlord_id, query, params);
+
+    const total = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    
+    // Mask NID in list view and remove total_count
+    const data = result.rows.map(r => {
+      const { total_count, ...row } = r;
+      return { ...row, encrypted_national_id: row.encrypted_national_id ? '***ENCRYPTED***' : null };
+    });
+
+    return {
+      data,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   });
 
   fastify.get('/:id', auth, async (req, reply) => {

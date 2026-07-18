@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { FileText, Plus, X, Search, Calendar, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -255,41 +256,53 @@ function TerminateModal({ open, lease, onClose, onTerminated }) {
 }
 
 export default function Leases() {
-  const [leases, setLeases] = useState([]);
   const [units, setUnits] = useState([]);
   const [tenants, setTenants] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterActive, setFilterActive] = useState('active');
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
   const [modalOpen, setModalOpen] = useState(false);
   const [terminateTarget, setTerminateTarget] = useState(null);
 
-  useEffect(() => { fetchAll(); }, []);
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
-  const fetchAll = async () => {
-    setLoading(true);
-    try {
-      const [leasesRes, unitsRes, tenantsRes] = await Promise.all([
-        api.get('/leases'),
-        api.get('/units'),
-        api.get('/tenants'),
-      ]);
-      setLeases(leasesRes.data);
-      setUnits(unitsRes.data);
-      setTenants(tenantsRes.data);
-    } catch {
-      toast.error('Failed to load leases');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Reset page when filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, filterActive]);
+
+  const { data: response, isLoading: loading, refetch } = useQuery({
+    queryKey: ['leases', page, debouncedSearch, filterActive],
+    queryFn: async () => {
+      const is_active = filterActive === 'all' ? undefined : filterActive === 'active';
+      const { data } = await api.get('/leases', {
+        params: { page, limit, search: debouncedSearch, is_active }
+      });
+      return data;
+    },
+    keepPreviousData: true,
+  });
+
+  const leases = response?.data || [];
+  const meta = response?.meta || { total: 0, totalPages: 1 };
+
+  // Fetch dropdown data for create form once
+  useEffect(() => {
+    api.get('/units').then(r => setUnits(r.data?.data || r.data)).catch(() => {});
+    api.get('/tenants').then(r => setTenants(r.data?.data || r.data)).catch(() => {});
+  }, []);
 
   const handleLeaseCreated = (newLease) => {
-    fetchAll(); // re-fetch to get joined data
+    refetch();
   };
 
   const handleTerminated = (leaseId) => {
-    setLeases((ls) => ls.map((l) => l.id === leaseId ? { ...l, is_active: false, terminated_at: new Date().toISOString() } : l));
+    refetch();
   };
 
   const filtered = leases.filter((l) => {
@@ -389,7 +402,7 @@ export default function Leases() {
                   <td key={j}><div className="skeleton" style={{ height: 18, width: '80%' }} /></td>
                 ))}</tr>
               ))
-            ) : filtered.length === 0 ? (
+            ) : leases.length === 0 ? (
               <tr><td colSpan={8}>
                 <div className="empty-state">
                   <FileText size={36} className="empty-icon" />
@@ -397,7 +410,7 @@ export default function Leases() {
                   <div className="empty-desc">Create a lease to assign a tenant to a unit.</div>
                 </div>
               </td></tr>
-            ) : filtered.map((l) => (
+            ) : leases.map((l) => (
               <tr key={l.id}>
                 <td>
                   <div style={{ fontWeight: 700 }}>{l.tenant_name}</div>
@@ -439,6 +452,34 @@ export default function Leases() {
             ))}
           </tbody>
         </table>
+        
+        {/* Pagination Controls */}
+        {meta.totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Showing {leases.length} of {meta.total} leases
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
+                Page {page} of {meta.totalPages}
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                disabled={page === meta.totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <LeaseModal

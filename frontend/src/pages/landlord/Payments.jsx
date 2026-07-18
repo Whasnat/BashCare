@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Wallet, CheckCircle2, XCircle, Clock, Search, X, History, AlertTriangle } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -190,47 +191,54 @@ function RejectModal({ payment, onClose, onConfirm }) {
 // ─── Main Component ──────────────────────────────────────────
 export default function Payments() {
   const [tab, setTab] = useState('pending'); // 'pending' | 'all'
-  const [pendingPayments, setPendingPayments] = useState([]);
-  const [allPayments, setAllPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 20;
+  
   const [approving, setApproving] = useState(null);
   const [rejecting, setRejecting] = useState(null);
 
-  const fetchPending = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/payments/pending');
-      setPendingPayments(data);
-    } catch {
-      toast.error('Failed to load pending payments');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/payments/all');
-      setAllPayments(data);
-    } catch {
-      toast.error('Failed to load payment history');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
-    if (tab === 'pending') fetchPending();
-    else fetchAll();
-  }, [tab, fetchPending, fetchAll]);
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Reset page on tab/search change
+  useEffect(() => { setPage(1); }, [tab, debouncedSearch]);
+
+  const { data: pendingPayments = [], isLoading: pendingLoading, refetch: refetchPending } = useQuery({
+    queryKey: ['payments', 'pending'],
+    queryFn: async () => {
+      const { data } = await api.get('/payments/pending');
+      return data;
+    },
+    enabled: tab === 'pending',
+  });
+
+  const { data: allResponse, isLoading: allLoading, refetch: refetchAll } = useQuery({
+    queryKey: ['payments', 'all', page, debouncedSearch],
+    queryFn: async () => {
+      const { data } = await api.get('/payments/all', {
+        params: { page, limit, search: debouncedSearch }
+      });
+      return data;
+    },
+    enabled: tab === 'all',
+    keepPreviousData: true,
+  });
+
+  const allPayments = allResponse?.data || [];
+  const meta = allResponse?.meta || { total: 0, totalPages: 1 };
+  
+  const loading = tab === 'pending' ? pendingLoading : allLoading;
 
   const handleVerify = async (paymentId, action, method, notes) => {
     try {
       const { data } = await api.patch(`/payments/${paymentId}/verify`, { action, method, notes });
-      setPendingPayments((prev) => prev.filter((p) => p.id !== paymentId));
-      if (tab === 'all') fetchAll();
+      if (tab === 'pending') refetchPending();
+      else refetchAll();
       toast.success(action === 'approve'
         ? `✅ Payment confirmed — Invoice: ${data.invoice_status}`
         : '❌ Payment rejected');
@@ -241,12 +249,14 @@ export default function Payments() {
   };
 
   const source = tab === 'pending' ? pendingPayments : allPayments;
-  const filtered = source.filter((p) => {
-    const q = search.toLowerCase();
+  
+  // Note: Local search filtering is only needed for pending tab now, since 'all' is server-side paginated & filtered
+  const filtered = tab === 'pending' ? source.filter((p) => {
+    const q = debouncedSearch.toLowerCase();
     return (p.tenant_name || '').toLowerCase().includes(q) ||
       (p.trx_id || '').toLowerCase().includes(q) ||
       (p.unit_number || '').toLowerCase().includes(q);
-  });
+  }) : source;
 
   const formatDate = (d) => d
     ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -449,6 +459,34 @@ export default function Payments() {
             ))}
           </tbody>
         </table>
+        
+        {/* Pagination Controls */}
+        {tab === 'all' && meta.totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Showing {filtered.length} of {meta.total} payments
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
+                Page {page} of {meta.totalPages}
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                disabled={page === meta.totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <ApproveModal
