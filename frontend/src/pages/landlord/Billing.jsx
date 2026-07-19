@@ -402,14 +402,14 @@ export default function Billing() {
         </div>
         <div className="stat-card emerald">
           <div className="stat-content">
-            <div className="stat-value">৳{totals.paid.toLocaleString()}</div>
+            <div className="stat-value">৳ {totals.paid.toLocaleString()}</div>
             <div className="stat-label">{t('billing.totalCollected')}</div>
           </div>
           <div className="stat-icon emerald"><CheckCircle2 size={22} /></div>
         </div>
         <div className="stat-card rose" style={{}}>
           <div className="stat-content">
-            <div className="stat-value">৳{totals.outstanding.toLocaleString()}</div>
+            <div className="stat-value">৳ {totals.outstanding.toLocaleString()}</div>
             <div className="stat-label">{t('billing.outstanding')}</div>
           </div>
           <div className="stat-icon rose"><AlertTriangle size={22} /></div>
@@ -484,16 +484,16 @@ export default function Billing() {
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{inv.unit_number} · {inv.property_name}</div>
                 </td>
                 <td style={{ fontSize: '0.83rem' }}>{formatMonth(inv.billing_month)}</td>
-                <td className="font-mono">৳{Number(inv.base_rent).toLocaleString()}</td>
+                <td className="font-mono">৳ {Number(inv.base_rent).toLocaleString()}</td>
                 <td className="font-mono" style={{ color: inv.utility_charges > 0 ? 'var(--accent-amber)' : 'var(--text-muted)' }}>
-                  {inv.utility_charges > 0 ? `৳${Number(inv.utility_charges).toLocaleString()}` : '—'}
+                  {inv.utility_charges > 0 ? `৳ ${Number(inv.utility_charges).toLocaleString()}` : '—'}
                 </td>
-                <td className="font-mono font-bold">৳{Number(inv.total_calculated_due || inv.amount_due).toLocaleString()}</td>
+                <td className="font-mono font-bold">৳ {Number(inv.total_calculated_due || inv.amount_due).toLocaleString()}</td>
                 <td className="font-mono" style={{ color: 'var(--accent-emerald)' }}>
-                  ৳{Number(inv.amount_paid).toLocaleString()}
+                  ৳ {Number(inv.amount_paid).toLocaleString()}
                 </td>
                 <td className="font-mono" style={{ color: Number(inv.balance_remaining) > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)', fontWeight: 700 }}>
-                  ৳{Number(inv.balance_remaining || 0).toLocaleString()}
+                  ৳ {Number(inv.balance_remaining || 0).toLocaleString()}
                 </td>
                 <td><span className={`badge ${STATUS_BADGE[inv.status] || 'badge-pending'}`}>{inv.status.replace(/_/g, ' ')}</span></td>
                 <td style={{ textAlign: 'right' }}>
