@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Plus, Pencil, Trash2, Search, X, Phone, Mail, Shield, KeyRound, CheckCircle2, XCircle } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Search, X, Phone, Mail, Shield, KeyRound, CheckCircle2, XCircle, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -140,6 +140,7 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
 
 // ─── Set Login Modal ──────────────────────────────────────────────────
 function SetLoginModal({ open, onClose, tenant, onCreated }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ email: '', password: '', confirm: '', mode: 'invite', inviteLink: null });
   const [saving, setSaving] = useState(false);
   const [show, setShow] = useState(false);
@@ -290,6 +291,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
 
 // ─── Delete Confirm Modal ────────────────────────────────────────────
 function DeleteModal({ open, onClose, tenant, onDeleted }) {
+  const { t } = useTranslation();
   const [deleting, setDeleting] = useState(false);
   const handleDelete = async () => {
     setDeleting(true);

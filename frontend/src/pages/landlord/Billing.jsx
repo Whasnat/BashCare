@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Receipt, Plus, Search, X, ChevronDown, Zap, CheckCircle2, AlertTriangle, RefreshCw, Download } from 'lucide-react';
+import { Receipt, Plus, Search, X, ChevronDown, Zap, CheckCircle2, AlertTriangle, RefreshCw, Download, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -17,6 +17,7 @@ const STATUS_BADGE = {
 };
 
 function GenerateModal({ open, onClose, leases, onGenerated }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ lease_id: '', billing_month: '' });
   const [saving, setSaving] = useState(false);
 
@@ -180,6 +181,7 @@ function CashPaymentModal({ open, invoice, onClose, onPaid }) {
 }
 
 function AdjustModal({ open, invoice, onClose, onAdjusted }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ adjustment_type: 'DISCOUNT', amount: '', note: '' });
   const [saving, setSaving] = useState(false);
 

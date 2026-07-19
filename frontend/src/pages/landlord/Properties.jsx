@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, Plus, Pencil, Trash2, DoorOpen, Search, X } from 'lucide-react';
+import { Building2, Plus, Pencil, Trash2, DoorOpen, Search, X, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';

@@ -33,6 +33,7 @@ const METHOD_TEXT = {
 
 // ─── Approve Modal ───────────────────────────────────────────
 function ApproveModal({ payment, onClose, onConfirm }) {
+  const { t } = useTranslation();
   const [method, setMethod] = useState(payment?.method || 'BKASH');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
