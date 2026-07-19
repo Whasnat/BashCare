@@ -133,21 +133,40 @@ export default async function adminRoutes(fastify) {
 
   // ─── Platform overview stats ────────────────────────────────────────
   fastify.get('/stats', adminOnly, async () => {
-    const [landlords, properties, units, leases, invoices, userCount] = await Promise.all([
+    const [landlords, properties, units, leases, invoices, userCount, outstanding, trendData] = await Promise.all([
       queryAdmin(`SELECT COUNT(*) FROM landlord_profiles`),
       queryAdmin(`SELECT COUNT(*) FROM properties`),
       queryAdmin(`SELECT COUNT(*) FROM units`),
       queryAdmin(`SELECT COUNT(*) FROM leases WHERE is_active = TRUE`),
       queryAdmin(`SELECT SUM(amount_paid) AS total_collected FROM ledger_invoices WHERE status = 'PAID'`),
       queryAdmin(`SELECT COUNT(*) FROM users`),
+      queryAdmin(`SELECT SUM(balance_remaining) AS total_outstanding FROM ledger_invoices WHERE status != 'PAID'`),
+      queryAdmin(`
+        SELECT 
+          TO_CHAR(billing_month, 'Mon YYYY') AS month,
+          SUM(amount_paid) AS revenue
+        FROM ledger_invoices
+        WHERE status = 'PAID' 
+          AND billing_month >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '5 months')
+        GROUP BY billing_month
+        ORDER BY billing_month ASC
+      `)
     ]);
+
+    const totalUnits = parseInt(units.rows[0].count);
+    const activeLeases = parseInt(leases.rows[0].count);
+    const occupancyRate = totalUnits > 0 ? ((activeLeases / totalUnits) * 100).toFixed(1) : 0;
+
     return {
       total_landlords: parseInt(landlords.rows[0].count),
       total_properties: parseInt(properties.rows[0].count),
-      total_units: parseInt(units.rows[0].count),
-      active_leases: parseInt(leases.rows[0].count),
+      total_units: totalUnits,
+      active_leases: activeLeases,
+      occupancy_rate: occupancyRate,
       total_collected: invoices.rows[0].total_collected || 0,
+      total_outstanding: outstanding.rows[0].total_outstanding || 0,
       total_users: parseInt(userCount.rows[0].count),
+      revenue_trend: trendData.rows
     };
   });
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, Users, CheckCircle2, XCircle, RefreshCw, Search } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -62,13 +63,15 @@ export default function AdminDashboard() {
       </div>
 
       {/* Platform Stats */}
-      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: 24 }}>
+      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 24 }}>
         {[
           { label: 'Landlords', value: stats?.total_landlords || 0, color: 'teal' },
           { label: 'Properties', value: stats?.total_properties || 0, color: 'purple' },
           { label: 'Units', value: stats?.total_units || 0, color: 'amber' },
+          { label: 'Occupancy Rate', value: `${stats?.occupancy_rate || 0}%`, color: 'emerald' },
           { label: 'Active Leases', value: stats?.active_leases || 0, color: 'emerald' },
           { label: 'Total Collected', value: `৳${Number(stats?.total_collected || 0).toLocaleString()}`, color: 'teal' },
+          { label: 'Total Outstanding', value: `৳${Number(stats?.total_outstanding || 0).toLocaleString()}`, color: 'rose' },
         ].map(({ label, value, color }) => (
           <div key={label} className={`stat-card ${color}`}>
             <div className="stat-content">
@@ -77,6 +80,38 @@ export default function AdminDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Revenue Trend Chart */}
+      <div className="table-container" style={{ marginBottom: 24, padding: 20 }}>
+        <h3 className="table-title" style={{ marginBottom: 20 }}>Platform Revenue Trend (Last 6 Months)</h3>
+        <div style={{ width: '100%', height: 300 }}>
+          <ResponsiveContainer>
+            <AreaChart data={stats?.revenue_trend || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--accent-teal)" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="var(--accent-teal)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+              <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis 
+                stroke="var(--text-muted)" 
+                fontSize={12} 
+                tickLine={false} 
+                axisLine={false}
+                tickFormatter={(value) => `৳${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip 
+                contentStyle={{ backgroundColor: 'var(--bg-elevated)', borderColor: 'var(--border-color)', borderRadius: 8, color: 'var(--text-primary)' }}
+                itemStyle={{ color: 'var(--accent-teal)' }}
+                formatter={(value) => [`৳ ${Number(value).toLocaleString()}`, 'Revenue']}
+              />
+              <Area type="monotone" dataKey="revenue" stroke="var(--accent-teal)" fillOpacity={1} fill="url(#colorRevenue)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Landlord Management Table */}
