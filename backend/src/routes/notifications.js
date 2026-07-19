@@ -1,4 +1,4 @@
-import { pool } from '../db/index.js';
+import pool from '../config/database.js';
 import notificationService from '../services/notificationService.js';
 
 export default async function notificationsRoutes(fastify, options) {
