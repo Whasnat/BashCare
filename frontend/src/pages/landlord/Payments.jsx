@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Wallet, CheckCircle2, XCircle, Clock, Search, X, History, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -113,14 +114,14 @@ function ApproveModal({ payment, onClose, onConfirm }) {
           <label className="form-label">Notes (optional)</label>
           <input
             className="form-input"
-            placeholder="e.g. Verified in bKash app"
+            placeholder={t('payments.phVerifiedBkash')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
           <button
             className="btn btn-primary"
             onClick={handleApprove}
@@ -128,7 +129,7 @@ function ApproveModal({ payment, onClose, onConfirm }) {
             style={{ background: 'var(--accent-emerald)', minWidth: 140 }}
           >
             {saving ? <span className="spinner" /> : <CheckCircle2 size={15} />}
-            Approve Payment
+            {t('payments.approve')}
           </button>
         </div>
       </div>
@@ -140,6 +141,7 @@ function ApproveModal({ payment, onClose, onConfirm }) {
 function RejectModal({ payment, onClose, onConfirm }) {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const { t } = useTranslation();
 
   if (!payment) return null;
 
@@ -159,7 +161,7 @@ function RejectModal({ payment, onClose, onConfirm }) {
         <div className="modal-header">
           <h2 className="modal-title" style={{ color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <AlertTriangle size={18} />
-            Reject Payment?
+            {t('payments.rejectPayment')}
           </h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
@@ -171,16 +173,16 @@ function RejectModal({ payment, onClose, onConfirm }) {
           <label className="form-label">Reason for rejection (optional)</label>
           <input
             className="form-input"
-            placeholder="e.g. TrxID not found in bKash app"
+            placeholder={t('payments.phTrxNotFound')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
           <button className="btn btn-danger" onClick={handleReject} disabled={saving} style={{ minWidth: 130 }}>
             {saving ? <span className="spinner" /> : <XCircle size={15} />}
-            Reject
+            {t('payments.reject')}
           </button>
         </div>
       </div>
@@ -197,6 +199,7 @@ export default function Payments() {
   
   const [approving, setApproving] = useState(null);
   const [rejecting, setRejecting] = useState(null);
+  const { t } = useTranslation();
 
   // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -278,8 +281,8 @@ export default function Payments() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Payments</h1>
-          <p className="page-subtitle">Review and confirm tenant payment submissions</p>
+          <h1 className="page-title">{t('payments.title')}</h1>
+          <p className="page-subtitle">{t('payments.subtitle')}</p>
         </div>
         {pendingPayments.length > 0 && (
           <div style={{
@@ -329,8 +332,8 @@ export default function Payments() {
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 4 }}>
             {[
-              { key: 'pending', label: 'Pending', icon: Clock },
-              { key: 'all', label: 'All History', icon: History },
+              { key: 'pending', label: t('payments.pending'), icon: Clock },
+              { key: 'all', label: t('payments.allHistory'), icon: History },
             ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
@@ -358,7 +361,7 @@ export default function Payments() {
           <div className="search-bar">
             <Search size={15} color="var(--text-muted)" />
             <input
-              placeholder="Search tenant, unit or TrxID…"
+              placeholder={t('payments.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -368,15 +371,15 @@ export default function Payments() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Tenant</th>
-              <th>Unit</th>
-              <th>Billing Month</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Transaction ID</th>
-              <th>Date</th>
-              {tab === 'all' && <th>Status</th>}
-              {tab === 'pending' && <th style={{ textAlign: 'center' }}>Action</th>}
+              <th>{t('billing.tenantUnit')}</th>
+              <th>{t('units.unitNumber')}</th>
+              <th>{t('billing.billingMonth')}</th>
+              <th>{t('payments.amount')}</th>
+              <th>{t('payments.method')}</th>
+              <th>{t('payments.trxId')}</th>
+              <th>{t('payments.date')}</th>
+              {tab === 'all' && <th>{t('common.status')}</th>}
+              {tab === 'pending' && <th style={{ textAlign: 'center' }}>{t('common.actions')}</th>}
             </tr>
           </thead>
           <tbody>
@@ -464,7 +467,7 @@ export default function Payments() {
         {tab === 'all' && meta.totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Showing {filtered.length} of {meta.total} payments
+              {t('common.showing')} {filtered.length} {t('common.of')} {meta.total} {t('nav.payments').toLowerCase()}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -472,17 +475,17 @@ export default function Payments() {
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
-                Previous
+                {t('common.previous')}
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
-                Page {page} of {meta.totalPages}
+                {t('common.page')} {page} {t('common.of')} {meta.totalPages}
               </div>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
                 disabled={page === meta.totalPages}
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </div>

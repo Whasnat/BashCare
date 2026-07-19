@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save, Building2, Smartphone, CreditCard, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -65,6 +66,7 @@ export default function Settings() {
   const [profileForm, setProfileForm] = useState({ company_name: '', contact_phone: '' });
   const [paymentDirty, setPaymentDirty] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => { fetchSettings(); }, []);
 
@@ -145,8 +147,8 @@ export default function Settings() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Configure your profile and payment collection details</p>
+          <h1 className="page-title">{t('settings.title')}</h1>
+          <p className="page-subtitle">{t('settings.subtitle')}</p>
         </div>
       </div>
 
@@ -164,7 +166,7 @@ export default function Settings() {
                 className="form-input"
                 value={profileForm.company_name}
                 onChange={setProf('company_name')}
-                placeholder="e.g. Rahman Properties Ltd."
+                placeholder={t('settings.phCompanyName')}
               />
             </div>
             <div className="form-group">
@@ -173,7 +175,7 @@ export default function Settings() {
                 className="form-input"
                 value={profileForm.contact_phone}
                 onChange={setProf('contact_phone')}
-                placeholder="+8801XXXXXXXXX"
+                placeholder={t('settings.phPhone')}
               />
             </div>
             <div className="form-group">
@@ -190,7 +192,7 @@ export default function Settings() {
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button type="submit" className="btn btn-primary" disabled={savingProfile || !profileDirty} style={{ minWidth: 140 }}>
               {savingProfile ? <span className="spinner" /> : <Save size={15} />}
-              {profileDirty ? 'Save Profile' : 'Saved'}
+              {profileDirty ? t('common.save') : t('common.save')}
             </button>
           </div>
         </form>
@@ -253,19 +255,19 @@ export default function Settings() {
           <div className="form-grid" style={{ marginBottom: 12 }}>
             <div className="form-group">
               <label className="form-label">Account Holder Name</label>
-              <input className="form-input" placeholder="Mohammad Rahman" value={payment.bank_account_name} onChange={setP('bank_account_name')} />
+              <input className="form-input" placeholder={t('settings.phName')} value={payment.bank_account_name} onChange={setP('bank_account_name')} />
             </div>
             <div className="form-group">
               <label className="form-label">Account Number</label>
-              <input className="form-input" placeholder="1234567890" value={payment.bank_account_number} onChange={setP('bank_account_number')} />
+              <input className="form-input" placeholder={t('settings.phAccountNum')} value={payment.bank_account_number} onChange={setP('bank_account_number')} />
             </div>
             <div className="form-group">
               <label className="form-label">Bank Name</label>
-              <input className="form-input" placeholder="Dutch-Bangla Bank" value={payment.bank_name} onChange={setP('bank_name')} />
+              <input className="form-input" placeholder={t('settings.phBankName')} value={payment.bank_name} onChange={setP('bank_name')} />
             </div>
             <div className="form-group">
               <label className="form-label">Routing Number</label>
-              <input className="form-input" placeholder="090261526" value={payment.bank_routing_number} onChange={setP('bank_routing_number')} />
+              <input className="form-input" placeholder={t('settings.phRoutingNum')} value={payment.bank_routing_number} onChange={setP('bank_routing_number')} />
             </div>
           </div>
         </SectionCard>
@@ -273,7 +275,7 @@ export default function Settings() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 32 }}>
           <button type="submit" className="btn btn-primary" id="save-payment-btn" disabled={savingPayment || !paymentDirty} style={{ minWidth: 200 }}>
             {savingPayment ? <span className="spinner" /> : <Save size={15} />}
-            {paymentDirty ? 'Save Payment Details' : 'All Saved'}
+            {paymentDirty ? t('common.save') : t('common.save')}
           </button>
         </div>
       </form>

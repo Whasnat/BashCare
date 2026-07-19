@@ -3,52 +3,64 @@ import {
   LayoutDashboard, Building2, DoorOpen, Users, FileText,
   Wallet, Receipt, Zap, PieChart, Settings, Home, X
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/authStore';
 
 const NAV_ITEMS = {
   landlord: [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Properties', path: '/properties', icon: Building2 },
-    { label: 'Units', path: '/units', icon: DoorOpen },
-    { label: 'Tenants', path: '/tenants', icon: Users },
-    { label: 'Leases', path: '/leases', icon: FileText },
-    { label: 'Billing & Ledger', path: '/billing', icon: Receipt },
-    { label: 'Payments', path: '/payments', icon: Wallet },
-    { label: 'Utilities', path: '/utilities', icon: Zap },
-    { label: 'Reports', path: '/reports', icon: PieChart },
-    { label: 'Settings', path: '/settings', icon: Settings },
+    { labelKey: 'nav.dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { labelKey: 'nav.properties', path: '/properties', icon: Building2 },
+    { labelKey: 'nav.units', path: '/units', icon: DoorOpen },
+    { labelKey: 'nav.tenants', path: '/tenants', icon: Users },
+    { labelKey: 'nav.leases', path: '/leases', icon: FileText },
+    { labelKey: 'nav.billing', path: '/billing', icon: Receipt },
+    { labelKey: 'nav.payments', path: '/payments', icon: Wallet },
+    { labelKey: 'nav.utilities', path: '/utilities', icon: Zap },
+    { labelKey: 'nav.reports', path: '/reports', icon: PieChart },
+    { labelKey: 'nav.settings', path: '/settings', icon: Settings },
   ],
   manager: [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Properties', path: '/properties', icon: Building2 },
-    { label: 'Units', path: '/units', icon: DoorOpen },
-    { label: 'Tenants', path: '/tenants', icon: Users },
-    { label: 'Leases', path: '/leases', icon: FileText },
-    { label: 'Billing & Ledger', path: '/billing', icon: Receipt },
-    { label: 'Utilities', path: '/utilities', icon: Zap },
+    { labelKey: 'nav.dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { labelKey: 'nav.properties', path: '/properties', icon: Building2 },
+    { labelKey: 'nav.units', path: '/units', icon: DoorOpen },
+    { labelKey: 'nav.tenants', path: '/tenants', icon: Users },
+    { labelKey: 'nav.leases', path: '/leases', icon: FileText },
+    { labelKey: 'nav.billing', path: '/billing', icon: Receipt },
+    { labelKey: 'nav.utilities', path: '/utilities', icon: Zap },
   ],
   tenant: [
-    { label: 'My Dashboard', path: '/portal/dashboard', icon: Home },
-    { label: 'My Invoices', path: '/portal/invoices', icon: Receipt },
+    { labelKey: 'nav.myDashboard', path: '/portal/dashboard', icon: Home },
+    { labelKey: 'nav.myInvoices', path: '/portal/invoices', icon: Receipt },
   ],
   admin: [
-    { label: 'Admin Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'Landlords', path: '/admin/landlords', icon: Building2 },
-    { label: 'All Users', path: '/admin/users', icon: Users },
+    { labelKey: 'nav.adminDashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { labelKey: 'nav.landlords', path: '/admin/landlords', icon: Building2 },
+    { labelKey: 'nav.allUsers', path: '/admin/users', icon: Users },
   ],
 };
 
 export default function Sidebar({ isOpen, onClose }) {
   const { pathname } = useLocation();
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
 
   const navLinks = NAV_ITEMS[user?.role] || NAV_ITEMS.landlord;
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to sign out?')) {
+    if (window.confirm(t('common.confirmLogout'))) {
       logout();
     }
   };
+
+  const sectionLabel = user?.role === 'tenant'
+    ? t('nav.myAccount')
+    : user?.role === 'admin'
+      ? t('nav.administration')
+      : t('nav.core');
+
+  const logoSub = user?.role === 'tenant'
+    ? t('nav.tenantPortal')
+    : t('nav.enterpriseManagement');
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -58,7 +70,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <div>
             <div className="logo-text">Basha<span>Care</span></div>
             <div className="logo-sub">
-              {user?.role === 'tenant' ? 'Tenant Portal' : 'Enterprise Management'}
+              {logoSub}
             </div>
           </div>
         </Link>
@@ -70,7 +82,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
       <nav className="sidebar-nav">
         <div className="nav-section-label">
-          {user?.role === 'tenant' ? 'My Account' : user?.role === 'admin' ? 'Administration' : 'Core'}
+          {sectionLabel}
         </div>
         {navLinks.map((item) => {
           const Icon = item.icon;
@@ -78,7 +90,7 @@ export default function Sidebar({ isOpen, onClose }) {
           return (
             <Link key={item.path} to={item.path} className={`nav-item ${isActive ? 'active' : ''}`}>
               <Icon className="nav-icon" size={18} />
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
               {item.badge && <span className="nav-badge">{item.badge}</span>}
             </Link>
           );
@@ -92,7 +104,7 @@ export default function Sidebar({ isOpen, onClose }) {
           </div>
           <div className="user-info truncate">
             <div className="user-name truncate">{user?.full_name}</div>
-            <div className="user-role">Sign Out ({user?.role})</div>
+            <div className="user-role">{t('common.signOut')} ({user?.role})</div>
           </div>
         </div>
       </div>

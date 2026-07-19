@@ -5,55 +5,66 @@ export default async function reportsRoutes(fastify) {
 
   // Financial overview dashboard data
   fastify.get('/overview', auth, async (req) => {
-    const { year, month } = req.query;
     const lid = req.user.landlord_id;
 
-    const [occupancy, revenueMonthly, paymentMethods, overdueInvoices, recentActivity] = await Promise.all([
-      queryWithRLS(lid, `
-        SELECT
-          COUNT(*) AS total_units,
-          COUNT(*) FILTER (WHERE status = 'OCCUPIED') AS occupied,
-          COUNT(*) FILTER (WHERE status = 'VACANT') AS vacant,
-          COUNT(*) FILTER (WHERE status = 'MAINTENANCE') AS maintenance,
-          ROUND(COUNT(*) FILTER (WHERE status = 'OCCUPIED')::NUMERIC / NULLIF(COUNT(*),0) * 100, 1) AS occupancy_rate
-        FROM units`),
-      queryWithRLS(lid, `
-        SELECT DATE_TRUNC('month', billing_month) AS month,
-               SUM(amount_due) AS total_due,
-               SUM(amount_paid) AS total_collected,
-               COUNT(*) AS invoice_count
-        FROM ledger_invoices
-        WHERE billing_month >= NOW() - INTERVAL '6 months'
-        GROUP BY DATE_TRUNC('month', billing_month)
-        ORDER BY month ASC`),
-      queryWithRLS(lid, `
-        SELECT method, COUNT(*) AS count, SUM(amount) AS total
-        FROM payment_transactions
-        WHERE status = 'VERIFIED'
-        GROUP BY method`),
-      queryWithRLS(lid, `
-        SELECT COUNT(*) AS count, SUM(amount_due - amount_paid) AS total_outstanding
-        FROM ledger_invoices
-        WHERE status IN ('UNPAID','OVERDUE','PARTIALLY_PAID')`),
-      queryWithRLS(lid, `
-        SELECT pt.created_at, pt.amount, pt.method, pt.status,
-               tp.full_name AS tenant_name, u.unit_number, p.name AS property_name
-        FROM payment_transactions pt
-        JOIN tenant_profiles tp ON tp.id = pt.tenant_id
-        JOIN ledger_invoices li ON li.id = pt.invoice_id
-        JOIN leases l ON l.id = li.lease_id
-        JOIN units u ON u.id = l.unit_id
-        JOIN properties p ON p.id = u.property_id
-        ORDER BY pt.created_at DESC
-        LIMIT 10`),
-    ]);
+    const result = await queryWithRLS(lid, `
+      SELECT
+        (SELECT row_to_json(o) FROM (
+          SELECT
+            COUNT(*) AS total_units,
+            COUNT(*) FILTER (WHERE status = 'OCCUPIED') AS occupied,
+            COUNT(*) FILTER (WHERE status = 'VACANT') AS vacant,
+            COUNT(*) FILTER (WHERE status = 'MAINTENANCE') AS maintenance,
+            ROUND(COUNT(*) FILTER (WHERE status = 'OCCUPIED')::NUMERIC / NULLIF(COUNT(*),0) * 100, 1) AS occupancy_rate
+          FROM units
+        ) o) AS occupancy,
+        
+        (SELECT COALESCE(json_agg(r), '[]'::json) FROM (
+          SELECT DATE_TRUNC('month', billing_month) AS month,
+                 SUM(amount_due) AS total_due,
+                 SUM(amount_paid) AS total_collected,
+                 COUNT(*) AS invoice_count
+          FROM ledger_invoices
+          WHERE billing_month >= NOW() - INTERVAL '6 months'
+          GROUP BY DATE_TRUNC('month', billing_month)
+          ORDER BY month ASC
+        ) r) AS revenue_monthly,
+        
+        (SELECT COALESCE(json_agg(p), '[]'::json) FROM (
+          SELECT method, COUNT(*) AS count, SUM(amount) AS total
+          FROM payment_transactions
+          WHERE status = 'VERIFIED'
+          GROUP BY method
+        ) p) AS payment_methods,
+        
+        (SELECT row_to_json(ov) FROM (
+          SELECT COUNT(*) AS count, SUM(amount_due - amount_paid) AS total_outstanding
+          FROM ledger_invoices
+          WHERE status IN ('UNPAID','OVERDUE','PARTIALLY_PAID')
+        ) ov) AS overdue,
+        
+        (SELECT COALESCE(json_agg(ra), '[]'::json) FROM (
+          SELECT pt.created_at, pt.amount, pt.method, pt.status,
+                 tp.full_name AS tenant_name, u.unit_number, p.name AS property_name
+          FROM payment_transactions pt
+          JOIN tenant_profiles tp ON tp.id = pt.tenant_id
+          JOIN ledger_invoices li ON li.id = pt.invoice_id
+          JOIN leases l ON l.id = li.lease_id
+          JOIN units u ON u.id = l.unit_id
+          JOIN properties p ON p.id = u.property_id
+          ORDER BY pt.created_at DESC
+          LIMIT 10
+        ) ra) AS recent_activity
+    `);
+
+    const row = result.rows[0];
 
     return {
-      occupancy: occupancy.rows[0],
-      revenue_monthly: revenueMonthly.rows,
-      payment_methods: paymentMethods.rows,
-      overdue: overdueInvoices.rows[0],
-      recent_activity: recentActivity.rows,
+      occupancy: row.occupancy,
+      revenue_monthly: row.revenue_monthly,
+      payment_methods: row.payment_methods,
+      overdue: row.overdue,
+      recent_activity: row.recent_activity,
     };
   });
 

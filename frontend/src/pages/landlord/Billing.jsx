@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Receipt, Plus, Search, X, ChevronDown, Zap, CheckCircle2, AlertTriangle, RefreshCw, Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import html2pdf from 'html2pdf.js';
@@ -47,7 +48,7 @@ function GenerateModal({ open, onClose, leases, onGenerated }) {
     <div className="modal-overlay">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Generate Invoice</h2>
+          <h2 className="modal-title">{t('billing.modalGenerateInvoice')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -80,10 +81,10 @@ function GenerateModal({ open, onClose, leases, onGenerated }) {
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? <span className="spinner" /> : null}
-              Generate Invoice
+              {t('billing.generateInvoice')}
             </button>
           </div>
         </form>
@@ -96,6 +97,7 @@ function CashPaymentModal({ open, invoice, onClose, onPaid }) {
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (invoice) setAmount(invoice.balance_remaining || invoice.amount_due || '');
@@ -125,7 +127,7 @@ function CashPaymentModal({ open, invoice, onClose, onPaid }) {
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Record Cash Payment</h2>
+          <h2 className="modal-title">{t('billing.modalRecordCashPayment')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <div style={{
@@ -158,17 +160,17 @@ function CashPaymentModal({ open, invoice, onClose, onPaid }) {
               <label className="form-label">Notes</label>
               <input
                 className="form-input"
-                placeholder="e.g. Received in person"
+                placeholder={t('billing.phReceivedInPerson')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" /> : null}
-              Record Payment
+              {saving ? <span className="spinner" /> : <Save size={15} />}
+              {t('common.save')}
             </button>
           </div>
         </form>
@@ -202,7 +204,7 @@ function AdjustModal({ open, invoice, onClose, onAdjusted }) {
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Add Adjustment</h2>
+          <h2 className="modal-title">{t('billing.modalAddAdjustment')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -219,19 +221,19 @@ function AdjustModal({ open, invoice, onClose, onAdjusted }) {
             </div>
             <div className="form-group">
               <label className="form-label">Amount (৳) *</label>
-              <input type="number" className="form-input" placeholder="500" min="0" step="0.01"
+              <input type="number" className="form-input" placeholder={t('billing.phAmount')} min="0" step="0.01"
                 value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Note</label>
-              <input className="form-input" placeholder="Reason for adjustment"
+              <label className="form-label">{t('billing.reasonForAdjustment')}</label>
+              <input className="form-input" placeholder={t('billing.phReasonForAdjustment')}
                 value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" /> : null} Add Adjustment
+              {saving ? <span className="spinner" /> : <Save size={15} />} {t('common.save')}
             </button>
           </div>
         </form>
@@ -256,6 +258,7 @@ export default function Billing() {
   const { user } = useAuthStore();
   const pdfRef = useRef(null);
   const [pdfInvoice, setPdfInvoice] = useState(null);
+  const { t } = useTranslation();
 
   // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -357,20 +360,20 @@ export default function Billing() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Billing & Ledger</h1>
-          <p className="page-subtitle">Generate invoices and track payment status</p>
+          <h1 className="page-title">{t('billing.title')}</h1>
+          <p className="page-subtitle">{t('billing.subtitle')}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" id="mark-overdue-btn" onClick={handleMarkOverdue} disabled={markingOverdue} title="Mark all unpaid past-due invoices as Overdue">
             {markingOverdue ? <span className="spinner" /> : <AlertTriangle size={15} />}
-            Mark Overdue
+            {t('billing.markOverdue')}
           </button>
           <button className="btn btn-secondary" id="generate-all-btn" onClick={handleGenerateAll} disabled={generatingAll}>
             {generatingAll ? <span className="spinner" /> : <RefreshCw size={15} />}
-            Generate All (This Month)
+            {t('billing.generateAll')}
           </button>
           <button className="btn btn-primary" id="generate-invoice-btn" onClick={() => setGenModalOpen(true)}>
-            <Plus size={16} /> Generate Invoice
+            <Plus size={16} /> {t('billing.generateInvoice')}
           </button>
         </div>
       </div>
@@ -380,28 +383,28 @@ export default function Billing() {
         <div className="stat-card teal">
           <div className="stat-content">
             <div className="stat-value">{meta.total}</div>
-            <div className="stat-label">Total Invoices</div>
+            <div className="stat-label">{t('billing.totalInvoices')}</div>
           </div>
           <div className="stat-icon teal"><Receipt size={22} /></div>
         </div>
         <div className="stat-card emerald">
           <div className="stat-content">
             <div className="stat-value">৳{totals.paid.toLocaleString()}</div>
-            <div className="stat-label">Total Collected</div>
+            <div className="stat-label">{t('billing.totalCollected')}</div>
           </div>
           <div className="stat-icon emerald"><CheckCircle2 size={22} /></div>
         </div>
         <div className="stat-card rose" style={{}}>
           <div className="stat-content">
             <div className="stat-value">৳{totals.outstanding.toLocaleString()}</div>
-            <div className="stat-label">Outstanding</div>
+            <div className="stat-label">{t('billing.outstanding')}</div>
           </div>
           <div className="stat-icon rose"><AlertTriangle size={22} /></div>
         </div>
         <div className="stat-card amber">
           <div className="stat-content">
             <div className="stat-value">{invoices.filter((i) => i.status === 'PENDING_VERIFICATION').length}</div>
-            <div className="stat-label">Pending Verify</div>
+            <div className="stat-label">{t('billing.pendingVerify')}</div>
           </div>
           <div className="stat-icon amber"><Zap size={22} /></div>
         </div>
@@ -409,7 +412,7 @@ export default function Billing() {
 
       <div className="table-container">
         <div className="table-header">
-          <h3 className="table-title">Invoice Ledger</h3>
+          <h3 className="table-title">{t('billing.invoiceLedger')}</h3>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <select
               className="form-select"
@@ -417,16 +420,16 @@ export default function Billing() {
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
-              <option value="">All Statuses</option>
-              <option value="UNPAID">Unpaid</option>
-              <option value="PENDING_VERIFICATION">Pending Verification</option>
-              <option value="PARTIALLY_PAID">Partially Paid</option>
-              <option value="PAID">Paid</option>
-              <option value="OVERDUE">Overdue</option>
+              <option value="">{t('billing.allStatuses')}</option>
+              <option value="UNPAID">{t('billing.unpaid')}</option>
+              <option value="PENDING_VERIFICATION">{t('billing.pendingVerification')}</option>
+              <option value="PARTIALLY_PAID">{t('billing.partiallyPaid')}</option>
+              <option value="PAID">{t('common.paid', 'Paid')}</option>
+              <option value="OVERDUE">{t('billing.overdue')}</option>
             </select>
             <div className="search-bar">
               <Search size={15} color="var(--text-muted)" />
-              <input placeholder="Search tenant or unit…" value={search}
+              <input placeholder={t('billing.searchPlaceholder')} value={search}
                 onChange={(e) => setSearch(e.target.value)} />
             </div>
           </div>
@@ -435,15 +438,15 @@ export default function Billing() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Tenant / Unit</th>
-              <th>Billing Month</th>
-              <th>Base Rent</th>
-              <th>Utility</th>
-              <th>Total Due</th>
-              <th>Paid</th>
-              <th>Balance</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('billing.tenantUnit')}</th>
+              <th>{t('billing.billingMonth')}</th>
+              <th>{t('billing.baseRent')}</th>
+              <th>{t('billing.utility')}</th>
+              <th>{t('billing.totalDue')}</th>
+              <th>{t('billing.paid')}</th>
+              <th>{t('billing.balance')}</th>
+              <th>{t('common.status')}</th>
+              <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -457,8 +460,8 @@ export default function Billing() {
               <tr><td colSpan={9}>
                 <div className="empty-state">
                   <Receipt size={36} className="empty-icon" />
-                  <div className="empty-title">No invoices found</div>
-                  <div className="empty-desc">Generate invoices for your active leases.</div>
+                  <div className="empty-title">{t('billing.noInvoices')}</div>
+                  <div className="empty-desc">{t('billing.noInvoicesDesc')}</div>
                 </div>
               </td></tr>
             ) : invoices.map((inv) => (
@@ -489,14 +492,14 @@ export default function Billing() {
                           id={`cash-pay-${inv.id}`}
                           onClick={() => setCashTarget(inv)}
                         >
-                          Cash
+                          {t('billing.cash')}
                         </button>
                         <button
                           className="btn btn-ghost btn-sm"
                           id={`adjust-${inv.id}`}
                           onClick={() => setAdjustTarget(inv)}
                         >
-                          Adjust
+                          {t('billing.adjust')}
                         </button>
                       </>
                     )}
@@ -518,7 +521,7 @@ export default function Billing() {
         {meta.totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Showing {invoices.length} of {meta.total} invoices
+              {t('common.showing')} {invoices.length} {t('common.of')} {meta.total} {t('dashboard.invoices')}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -526,17 +529,17 @@ export default function Billing() {
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
-                Previous
+                {t('common.previous')}
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
-                Page {page} of {meta.totalPages}
+                {t('common.page')} {page} {t('common.of')} {meta.totalPages}
               </div>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
                 disabled={page === meta.totalPages}
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </div>

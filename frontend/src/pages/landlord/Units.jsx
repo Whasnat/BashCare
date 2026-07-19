@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DoorOpen, Plus, Pencil, Trash2, Search, X, Building2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -14,6 +15,7 @@ function UnitModal({ open, onClose, unit, properties, onSaved }) {
   const [form, setForm] = useState({ property_id: '', unit_number: '', floor: '', bedrooms: 1, status: 'VACANT' });
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (unit) {
@@ -71,7 +73,7 @@ function UnitModal({ open, onClose, unit, properties, onSaved }) {
     <div className="modal-overlay">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">{isEdit ? 'Edit Unit' : 'Add New Unit'}</h2>
+          <h2 className="modal-title">{isEdit ? t('units.editUnit') : t('units.addUnit')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={handleClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -97,7 +99,7 @@ function UnitModal({ open, onClose, unit, properties, onSaved }) {
                 <label className="form-label">Unit Number *</label>
                 <input
                   className="form-input"
-                  placeholder="e.g. A-101"
+                  placeholder={t('units.phUnitNumber')}
                   value={form.unit_number}
                   onChange={setF('unit_number')}
                   required
@@ -107,7 +109,7 @@ function UnitModal({ open, onClose, unit, properties, onSaved }) {
                 <label className="form-label">Floor</label>
                 <input
                   className="form-input"
-                  placeholder="e.g. 3rd"
+                  placeholder={t('units.phFloor')}
                   value={form.floor}
                   onChange={setF('floor')}
                 />
@@ -140,12 +142,12 @@ function UnitModal({ open, onClose, unit, properties, onSaved }) {
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={handleClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" /> : null}
-              {isEdit ? 'Save Changes' : 'Add Unit'}
-            </button>
-          </div>
+          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? <span className="spinner" /> : <Save size={15} />}
+            {isEdit ? t('common.save') : t('common.create')}
+          </button>
+        </div>
         </form>
       </div>
     </div>
@@ -161,6 +163,7 @@ export default function Units() {
   const [filterProperty, setFilterProperty] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchAll();
@@ -220,11 +223,11 @@ export default function Units() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Units</h1>
-          <p className="page-subtitle">Manage individual rental units across all properties</p>
+          <h1 className="page-title">{t('units.title')}</h1>
+          <p className="page-subtitle">{t('units.subtitle')}</p>
         </div>
         <button className="btn btn-primary" id="add-unit-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
-          <Plus size={16} /> Add Unit
+          <Plus size={16} /> {t('units.addUnit')}
         </button>
       </div>
 
@@ -233,21 +236,21 @@ export default function Units() {
         <div className="stat-card teal">
           <div className="stat-content">
             <div className="stat-value">{counts.total}</div>
-            <div className="stat-label">Total Units</div>
+            <div className="stat-label">{t('units.title')}</div>
           </div>
           <div className="stat-icon teal"><DoorOpen size={22} /></div>
         </div>
         <div className="stat-card emerald">
           <div className="stat-content">
             <div className="stat-value">{counts.occupied}</div>
-            <div className="stat-label">Occupied</div>
+            <div className="stat-label">{t('units.occupied')}</div>
           </div>
           <div className="stat-icon emerald"><DoorOpen size={22} /></div>
         </div>
         <div className="stat-card amber">
           <div className="stat-content">
             <div className="stat-value">{counts.vacant}</div>
-            <div className="stat-label">Vacant</div>
+            <div className="stat-label">{t('units.vacant')}</div>
           </div>
           <div className="stat-icon amber"><DoorOpen size={22} /></div>
         </div>
@@ -262,7 +265,7 @@ export default function Units() {
 
       <div className="table-container">
         <div className="table-header">
-          <h3 className="table-title">All Units</h3>
+          <h3 className="table-title">{t('units.title')}</h3>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <select
               className="form-select"
@@ -270,7 +273,7 @@ export default function Units() {
               value={filterProperty}
               onChange={(e) => setFilterProperty(e.target.value)}
             >
-              <option value="">All Properties</option>
+              <option value="">{t('common.all')} {t('properties.title')}</option>
               {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             <select
@@ -279,15 +282,15 @@ export default function Units() {
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
-              <option value="">All Statuses</option>
-              <option value="VACANT">Vacant</option>
-              <option value="OCCUPIED">Occupied</option>
+              <option value="">{t('common.allStatuses')}</option>
+              <option value="VACANT">{t('units.vacant')}</option>
+              <option value="OCCUPIED">{t('units.occupied')}</option>
               <option value="MAINTENANCE">Maintenance</option>
             </select>
             <div className="search-bar">
               <Search size={15} color="var(--text-muted)" />
               <input
-                placeholder="Search units…"
+                placeholder={t('common.search') + "..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -297,14 +300,14 @@ export default function Units() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Unit</th>
-              <th>Property</th>
-              <th>Floor</th>
-              <th>Beds</th>
-              <th>Current Tenant</th>
-              <th>Rent (৳)</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('units.unitNumber')}</th>
+              <th>{t('units.property')}</th>
+              <th>{t('units.floor')}</th>
+              <th>{t('units.bedrooms')}</th>
+              <th>{t('units.currentTenant')}</th>
+              <th>{t('tenants.rent')} ({t('common.currency')})</th>
+              <th>{t('common.status')}</th>
+              <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -318,8 +321,8 @@ export default function Units() {
               <tr><td colSpan={8}>
                 <div className="empty-state">
                   <DoorOpen size={36} className="empty-icon" />
-                  <div className="empty-title">No units found</div>
-                  <div className="empty-desc">Add units to your properties to get started.</div>
+                  <div className="empty-title">{t('units.noUnits')}</div>
+                  <div className="empty-desc">{t('units.noUnitsDesc')}</div>
                 </div>
               </td></tr>
             ) : filtered.map((u) => (
@@ -356,7 +359,7 @@ export default function Units() {
                       className="btn btn-ghost btn-sm btn-icon"
                       id={`edit-unit-${u.id}`}
                       onClick={() => { setEditing(u); setModalOpen(true); }}
-                      title="Edit"
+                      title={t('common.edit')}
                     >
                       <Pencil size={15} />
                     </button>
@@ -364,7 +367,7 @@ export default function Units() {
                       className="btn btn-danger btn-sm btn-icon"
                       id={`delete-unit-${u.id}`}
                       onClick={() => handleDelete(u)}
-                      title="Delete"
+                      title={t('common.delete')}
                     >
                       <Trash2 size={15} />
                     </button>

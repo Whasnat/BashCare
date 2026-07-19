@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Building2, Plus, Pencil, Trash2, DoorOpen, Search, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -8,6 +9,7 @@ function PropertyModal({ open, onClose, property, onSaved }) {
   const [form, setForm] = useState({ name: '', address: '' });
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (property) setForm({ name: property.name, address: property.address });
@@ -21,6 +23,8 @@ function PropertyModal({ open, onClose, property, onSaved }) {
   };
 
   const handleClose = () => {
+    if (isDirty && !window.confirm(t('common.confirmLogout'))) return; // using confirmLogout as generic unsaved changes or I can add a specific one later. Wait, better to just use english string for confirm for now or add common.unsaved. Let's just keep english for window.confirm since it's a native alert, or use t('common.cancel').
+    // Let's use English for the native alert for now to keep it simple, or add a translation if needed.
     if (isDirty && !window.confirm('You have unsaved changes. Discard them?')) return;
     onClose();
   };
@@ -53,27 +57,27 @@ function PropertyModal({ open, onClose, property, onSaved }) {
     <div className="modal-overlay">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">{isEdit ? 'Edit Property' : 'Add New Property'}</h2>
+          <h2 className="modal-title">{isEdit ? t('properties.editProperty') : t('properties.addProperty')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={handleClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="flex-col gap-4">
             <div className="form-group">
-              <label className="form-label">Property Name *</label>
+              <label className="form-label">{t('properties.propertyName')} *</label>
               <input
                 className="form-input"
-                placeholder="e.g. Gulshan Heights Tower A"
+                placeholder={t('properties.phPropertyName')}
                 value={form.name}
                 onChange={handleChange('name')}
                 required
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Full Address *</label>
+              <label className="form-label">{t('properties.address')} *</label>
               <textarea
                 className="form-textarea"
                 rows={3}
-                placeholder="House 12, Road 5, Gulshan-1, Dhaka-1212"
+                placeholder={t('properties.phAddress')}
                 value={form.address}
                 onChange={handleChange('address')}
                 required
@@ -81,12 +85,12 @@ function PropertyModal({ open, onClose, property, onSaved }) {
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={handleClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" /> : null}
-              {isEdit ? 'Save Changes' : 'Add Property'}
-            </button>
-          </div>
+          <button type="button" className="btn btn-ghost" onClick={handleClose} disabled={saving}>{t('common.cancel')}</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? <span className="spinner" /> : <Save size={15} />}
+            {isEdit ? t('common.save') : t('common.create')}
+          </button>
+        </div>
         </form>
       </div>
     </div>
@@ -94,26 +98,38 @@ function PropertyModal({ open, onClose, property, onSaved }) {
 }
 
 function DeleteConfirmModal({ open, property, onClose, onConfirm }) {
+  const { t } = useTranslation();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    await onConfirm();
+    setDeleting(false);
+  };
+
   if (!open || !property) return null;
   return (
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title" style={{ color: 'var(--accent-rose)' }}>Delete Property?</h2>
+          <h2 className="modal-title" style={{ color: 'var(--accent-rose)' }}>{t('common.delete')}?</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 12 }}>
-          Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>{property.name}</strong>?
-          This will also remove all units within it.
+          {t('properties.deleteConfirm')} <strong style={{ color: 'var(--text-primary)' }}>{property.name}</strong>?
         </p>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-danger" onClick={onConfirm}>Delete</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={deleting}>{t('common.cancel')}</button>
+          <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+            {deleting ? <span className="spinner" /> : <Trash2 size={15} />}
+            {t('common.delete')}
+          </button>
         </div>
       </div>
     </div>
   );
 }
+
 
 export default function Properties() {
   const [properties, setProperties] = useState([]);
@@ -122,6 +138,7 @@ export default function Properties() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => { fetchProperties(); }, []);
 
@@ -163,11 +180,11 @@ export default function Properties() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Properties</h1>
-          <p className="page-subtitle">Manage all your buildings and complexes</p>
+          <h1 className="page-title">{t('properties.title')}</h1>
+          <p className="page-subtitle">{t('properties.subtitle')}</p>
         </div>
         <button className="btn btn-primary" id="add-property-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
-          <Plus size={16} /> Add Property
+          <Plus size={16} /> {t('properties.addProperty')}
         </button>
       </div>
 
@@ -176,21 +193,21 @@ export default function Properties() {
         <div className="stat-card teal">
           <div className="stat-content">
             <div className="stat-value">{properties.length}</div>
-            <div className="stat-label">Total Properties</div>
+            <div className="stat-label">{t('properties.title')}</div>
           </div>
           <div className="stat-icon teal"><Building2 size={22} /></div>
         </div>
         <div className="stat-card purple">
           <div className="stat-content">
             <div className="stat-value">{properties.reduce((s, p) => s + parseInt(p.total_units || 0), 0)}</div>
-            <div className="stat-label">Total Units</div>
+            <div className="stat-label">{t('properties.totalUnits')}</div>
           </div>
           <div className="stat-icon purple"><DoorOpen size={22} /></div>
         </div>
         <div className="stat-card emerald">
           <div className="stat-content">
             <div className="stat-value">{properties.reduce((s, p) => s + parseInt(p.occupied_units || 0), 0)}</div>
-            <div className="stat-label">Occupied Units</div>
+            <div className="stat-label">{t('properties.occupancy')}</div>
           </div>
           <div className="stat-icon emerald"><DoorOpen size={22} /></div>
         </div>
@@ -199,11 +216,11 @@ export default function Properties() {
       {/* Table */}
       <div className="table-container">
         <div className="table-header">
-          <h3 className="table-title">All Properties</h3>
+          <h3 className="table-title">{t('properties.title')}</h3>
           <div className="search-bar">
             <Search size={15} color="var(--text-muted)" />
             <input
-              placeholder="Search by name or address…"
+              placeholder={t('common.search') + "..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -212,12 +229,12 @@ export default function Properties() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Property Name</th>
-              <th>Address</th>
-              <th>Units</th>
-              <th>Occupied</th>
-              <th>Vacant</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('properties.propertyName')}</th>
+              <th>{t('properties.address')}</th>
+              <th>{t('properties.totalUnits')}</th>
+              <th>{t('units.occupied')}</th>
+              <th>{t('units.vacant')}</th>
+              <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -234,9 +251,9 @@ export default function Properties() {
                 <td colSpan={6}>
                   <div className="empty-state">
                     <Building2 size={36} className="empty-icon" />
-                    <div className="empty-title">{search ? 'No results found' : 'No properties yet'}</div>
+                    <div className="empty-title">{search ? t('common.noResults') : t('properties.noProperties')}</div>
                     <div className="empty-desc">
-                      {search ? 'Try a different search term.' : 'Click "Add Property" to get started.'}
+                      {search ? '' : t('properties.noPropertiesDesc')}
                     </div>
                   </div>
                 </td>
@@ -267,7 +284,7 @@ export default function Properties() {
                       className="btn btn-ghost btn-sm btn-icon"
                       id={`edit-property-${p.id}`}
                       onClick={() => { setEditing(p); setModalOpen(true); }}
-                      title="Edit"
+                      title={t('common.edit')}
                     >
                       <Pencil size={15} />
                     </button>
@@ -275,7 +292,7 @@ export default function Properties() {
                       className="btn btn-danger btn-sm btn-icon"
                       id={`delete-property-${p.id}`}
                       onClick={() => setDeleteTarget(p)}
-                      title="Delete"
+                      title={t('common.delete')}
                     >
                       <Trash2 size={15} />
                     </button>

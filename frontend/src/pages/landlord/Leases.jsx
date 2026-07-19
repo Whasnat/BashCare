@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Plus, X, Search, Calendar, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -12,6 +13,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
   });
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const { t } = useTranslation();
 
   const setF = (field) => (e) => { setForm((f) => ({ ...f, [field]: e.target.value })); setIsDirty(true); };
 
@@ -62,7 +64,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
     <div className="modal-overlay">
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Create New Lease</h2>
+          <h2 className="modal-title">{t('leases.createLease')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={handleClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -123,7 +125,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                   <input
                     type="number"
                     className="form-input"
-                    placeholder="15000"
+                    placeholder={t('leases.phBaseRent')}
                     value={form.base_rent}
                     onChange={(e) => setForm({ ...form, base_rent: e.target.value })}
                     min="0"
@@ -136,7 +138,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                   <input
                     type="number"
                     className="form-input"
-                    placeholder="30000"
+                    placeholder={t('leases.phSecurityDeposit')}
                     value={form.security_deposit}
                     onChange={(e) => setForm({ ...form, security_deposit: e.target.value })}
                     min="0"
@@ -148,7 +150,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                   <input
                     type="number"
                     className="form-input"
-                    placeholder="12.50"
+                    placeholder={t('leases.phUtilityTariff')}
                     value={form.utility_tariff}
                     onChange={(e) => setForm({ ...form, utility_tariff: e.target.value })}
                     min="0"
@@ -188,7 +190,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                 <textarea
                   className="form-textarea"
                   rows={2}
-                  placeholder="Any special clauses or notes…"
+                  placeholder={t('leases.phNotes')}
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 />
@@ -196,10 +198,10 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" /> : null}
-              Create Lease
+              {saving ? <span className="spinner" /> : <Save size={15} />}
+              {t('common.create')}
             </button>
           </div>
         </form>
@@ -210,6 +212,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
 
 function TerminateModal({ open, lease, onClose, onTerminated }) {
   const [terminating, setTerminating] = useState(false);
+  const { t } = useTranslation();
   const handleTerminate = async () => {
     setTerminating(true);
     try {
@@ -244,10 +247,10 @@ function TerminateModal({ open, lease, onClose, onTerminated }) {
           This cannot be undone.
         </p>
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn btn-danger" onClick={handleTerminate} disabled={terminating}>
             {terminating ? <span className="spinner" /> : null}
-            Terminate Lease
+            {t('leases.terminate')}
           </button>
         </div>
       </div>
@@ -265,6 +268,7 @@ export default function Leases() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [terminateTarget, setTerminateTarget] = useState(null);
+  const { t } = useTranslation();
 
   // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -325,11 +329,11 @@ export default function Leases() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Leases</h1>
-          <p className="page-subtitle">Create and manage rental contracts</p>
+          <h1 className="page-title">{t('leases.title')}</h1>
+          <p className="page-subtitle">{t('leases.subtitle')}</p>
         </div>
         <button className="btn btn-primary" id="create-lease-btn" onClick={() => setModalOpen(true)}>
-          <Plus size={16} /> Create Lease
+          <Plus size={16} /> {t('leases.createLease')}
         </button>
       </div>
 
@@ -338,14 +342,14 @@ export default function Leases() {
         <div className="stat-card teal">
           <div className="stat-content">
             <div className="stat-value">{activeCount}</div>
-            <div className="stat-label">Active Leases</div>
+            <div className="stat-label">{t('leases.activeLeases')}</div>
           </div>
           <div className="stat-icon teal"><FileText size={22} /></div>
         </div>
         <div className="stat-card amber">
           <div className="stat-content">
             <div className="stat-value">{leases.length - activeCount}</div>
-            <div className="stat-label">Past Leases</div>
+            <div className="stat-label">{t('leases.pastLeases')}</div>
           </div>
           <div className="stat-icon amber"><Calendar size={22} /></div>
         </div>
@@ -354,7 +358,7 @@ export default function Leases() {
             <div className="stat-value">
               ৳{leases.filter((l) => l.is_active).reduce((s, l) => s + Number(l.base_rent || 0), 0).toLocaleString()}
             </div>
-            <div className="stat-label">Monthly Rent Roll</div>
+            <div className="stat-label">{t('leases.monthlyRentRoll')}</div>
           </div>
           <div className="stat-icon emerald"><FileText size={22} /></div>
         </div>
@@ -362,19 +366,19 @@ export default function Leases() {
 
       <div className="table-container">
         <div className="table-header">
-          <h3 className="table-title">All Leases</h3>
+          <h3 className="table-title">{t('leases.allLeases')}</h3>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div className="tabs">
               {['active', 'past', 'all'].map((s) => (
                 <button key={s} className={`tab-btn ${filterActive === s ? 'active' : ''}`} onClick={() => setFilterActive(s)}>
-                  {s === 'active' ? 'Active' : s === 'past' ? 'Past' : 'All'}
+                  {s === 'active' ? t('common.active') : s === 'past' ? t('leases.past') : t('common.all')}
                 </button>
               ))}
             </div>
             <div className="search-bar">
               <Search size={15} color="var(--text-muted)" />
               <input
-                placeholder="Search by tenant or unit…"
+                placeholder={t('leases.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -385,14 +389,14 @@ export default function Leases() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Tenant</th>
-              <th>Unit</th>
-              <th>Base Rent</th>
-              <th>Security Dep.</th>
-              <th>Start Date</th>
-              <th>End Date</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('leases.tenant')}</th>
+              <th>{t('leases.unit')}</th>
+              <th>{t('leases.baseRent')}</th>
+              <th>{t('leases.securityDeposit')}</th>
+              <th>{t('leases.startDate')}</th>
+              <th>{t('leases.endDate')}</th>
+              <th>{t('common.status')}</th>
+              <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -457,7 +461,7 @@ export default function Leases() {
         {meta.totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Showing {leases.length} of {meta.total} leases
+              {t('common.showing')} {leases.length} {t('common.of')} {meta.total} {t('nav.leases').toLowerCase()}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -465,17 +469,17 @@ export default function Leases() {
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
-                Previous
+                {t('common.previous')}
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
-                Page {page} of {meta.totalPages}
+                {t('common.page')} {page} {t('common.of')} {meta.totalPages}
               </div>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
                 disabled={page === meta.totalPages}
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </div>

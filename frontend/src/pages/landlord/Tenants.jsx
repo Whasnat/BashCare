@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Users, Plus, Pencil, Trash2, Search, X, Phone, Mail, Shield, KeyRound, CheckCircle2, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 // ─── Tenant Add/Edit Modal ────────────────────────────────────────────
 function TenantModal({ open, onClose, tenant, onSaved }) {
   const isEdit = !!tenant;
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     full_name: '', phone_number: '', email: '',
     national_id: '', emergency_contact: '', emergency_phone: '',
@@ -71,7 +73,7 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
     <div className="modal-overlay">
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">{isEdit ? 'Edit Tenant' : 'Register New Tenant'}</h2>
+          <h2 className="modal-title">{isEdit ? t('tenants.editTenant') : t('tenants.addTenant')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={handleClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -84,24 +86,24 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Full Name *</label>
-                  <input className="form-input" placeholder="Abdul Karim" value={form.full_name} onChange={setF('full_name')} required />
+                  <input className="form-input" placeholder={t('tenants.phFullName')} value={form.full_name} onChange={setF('full_name')} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone Number *</label>
-                  <input className="form-input" placeholder="+8801XXXXXXXXX" value={form.phone_number} onChange={setF('phone_number')} required />
+                  <input className="form-input" placeholder={t('tenants.phPhone')} value={form.phone_number} onChange={setF('phone_number')} required />
                 </div>
               </div>
               <div className="form-grid" style={{ marginTop: 12 }}>
                 <div className="form-group">
                   <label className="form-label">Email Address</label>
-                  <input type="email" className="form-input" placeholder="tenant@example.com" value={form.email} onChange={setF('email')} />
+                  <input type="email" className="form-input" placeholder={t('tenants.phEmail')} value={form.email} onChange={setF('email')} />
                 </div>
                 {!isEdit && (
                   <div className="form-group">
                     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Shield size={12} /> National ID (NID) — Encrypted at rest
                     </label>
-                    <input className="form-input" placeholder="NID number (optional)" value={form.national_id} onChange={setF('national_id')} />
+                    <input className="form-input" placeholder={t('tenants.phNid')} value={form.national_id} onChange={setF('national_id')} />
                   </div>
                 )}
               </div>
@@ -114,20 +116,20 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Contact Name</label>
-                  <input className="form-input" placeholder="Fatema Begum" value={form.emergency_contact} onChange={setF('emergency_contact')} />
+                  <input className="form-input" placeholder={t('tenants.phEmergencyContact')} value={form.emergency_contact} onChange={setF('emergency_contact')} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Contact Phone</label>
-                  <input className="form-input" placeholder="+8801XXXXXXXXX" value={form.emergency_phone} onChange={setF('emergency_phone')} />
+                  <input className="form-input" placeholder={t('tenants.phPhone')} value={form.emergency_phone} onChange={setF('emergency_phone')} />
                 </div>
               </div>
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={handleClose}>Cancel</button>
+            <button type="button" className="btn btn-ghost" onClick={handleClose} disabled={saving}>{t('common.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" /> : null}
-              {isEdit ? 'Save Changes' : 'Register Tenant'}
+              {saving ? <span className="spinner" /> : <Save size={15} />}
+              {isEdit ? t('common.save') : t('common.create')}
             </button>
           </div>
         </form>
@@ -180,7 +182,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
       <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">Set Portal Login</h2>
+            <h2 className="modal-title">{t('tenants.setPortalLogin')}</h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
               for <strong style={{ color: 'var(--text-primary)' }}>{tenant?.full_name}</strong>
             </p>
@@ -237,7 +239,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
               <div className="form-group">
                 <label className="form-label">Login Email *</label>
                 <input
-                  type="email" className="form-input" placeholder="tenant@example.com"
+                  type="email" className="form-input" placeholder={t('tenants.phEmail')}
                   value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
                   required
                 />
@@ -250,7 +252,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
                     <div style={{ position: 'relative' }}>
                       <input
                         type={show ? 'text' : 'password'} className="form-input"
-                        placeholder="Min. 8 characters" minLength={8}
+                        placeholder={t('tenants.phMinChars')} minLength={8}
                         value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
                         required style={{ paddingRight: 80 }}
                       />
@@ -264,7 +266,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
                     <label className="form-label">Confirm Password *</label>
                     <input
                       type={show ? 'text' : 'password'} className="form-input"
-                      placeholder="Re-enter password" minLength={8}
+                      placeholder={t('tenants.phReEnterPassword')} minLength={8}
                       value={form.confirm} onChange={(e) => setForm(f => ({ ...f, confirm: e.target.value }))}
                       required
                     />
@@ -273,10 +275,10 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
               )}
             </div>
             <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '16px 20px' }}>
-              <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+              <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 {saving ? <span className="spinner" /> : null}
-                {form.mode === 'invite' ? <><Mail size={14} /> Generate Link</> : <><KeyRound size={14} /> Create Login</>}
+                {form.mode === 'invite' ? <><Mail size={14} /> {t('tenants.generateLink')}</> : <><KeyRound size={14} /> {t('tenants.createLogin')}</>}
               </button>
             </div>
           </form>
@@ -307,7 +309,7 @@ function DeleteModal({ open, onClose, tenant, onDeleted }) {
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title" style={{ color: 'var(--accent-rose)' }}>Delete Tenant?</h2>
+          <h2 className="modal-title" style={{ color: 'var(--accent-rose)' }}>{t('tenants.deleteTenantConfirm')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>
@@ -319,10 +321,10 @@ function DeleteModal({ open, onClose, tenant, onDeleted }) {
           </div>
         )}
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={deleting}>{t('common.cancel')}</button>
           <button className="btn btn-danger" onClick={handleDelete} disabled={deleting || !!tenant.lease_id}>
-            {deleting ? <span className="spinner" /> : <Trash2 size={14} />}
-            Delete Tenant
+            {deleting ? <span className="spinner" /> : <Trash2 size={15} />}
+            {t('common.delete')}
           </button>
         </div>
       </div>
@@ -332,18 +334,19 @@ function DeleteModal({ open, onClose, tenant, onDeleted }) {
 
 // ─── Main Tenants Page ────────────────────────────────────────────────
 export default function Tenants() {
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [page, setPage] = useState(1);
-  const limit = 20;
-
   const [modalOpen, setModalOpen] = useState(false);
   const [loginModal, setLoginModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
   const [editing, setEditing] = useState(null);
   
-  // Use debounced search to avoid spamming the API
+  const [page, setPage] = useState(1);
+  const limit = 15;
+  const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const { t } = useTranslation();
+
+  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(handler);
@@ -382,11 +385,11 @@ export default function Tenants() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Tenants</h1>
-          <p className="page-subtitle">Manage all tenant profiles and portal access</p>
+          <h1 className="page-title">{t('tenants.title')}</h1>
+          <p className="page-subtitle">{t('tenants.subtitle')}</p>
         </div>
         <button className="btn btn-primary" id="add-tenant-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
-          <Plus size={16} /> Register Tenant
+          <Plus size={16} /> {t('tenants.addTenant')}
         </button>
       </div>
 
@@ -395,21 +398,21 @@ export default function Tenants() {
         <div className="stat-card teal">
           <div className="stat-content">
             <div className="stat-value">{tenants.length}</div>
-            <div className="stat-label">Total Tenants</div>
+            <div className="stat-label">{t('tenants.totalTenants')}</div>
           </div>
           <div className="stat-icon teal"><Users size={22} /></div>
         </div>
         <div className="stat-card emerald">
           <div className="stat-content">
             <div className="stat-value">{activeTenants}</div>
-            <div className="stat-label">With Active Lease</div>
+            <div className="stat-label">{t('tenants.withLease')}</div>
           </div>
           <div className="stat-icon emerald"><Users size={22} /></div>
         </div>
         <div className="stat-card purple">
           <div className="stat-content">
             <div className="stat-value">{withLogin} / {tenants.length}</div>
-            <div className="stat-label">Portal Access Active</div>
+            <div className="stat-label">{t('tenants.withPortal')}</div>
           </div>
           <div className="stat-icon purple"><KeyRound size={22} /></div>
         </div>
@@ -417,19 +420,19 @@ export default function Tenants() {
 
       <div className="table-container">
         <div className="table-header">
-          <h3 className="table-title">Tenant Directory</h3>
+          <h3 className="table-title">{t('tenants.title')}</h3>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div className="tabs">
               {['all', 'active', 'inactive'].map((s) => (
                 <button key={s} className={`tab-btn ${filterStatus === s ? 'active' : ''}`} onClick={() => setFilterStatus(s)}>
-                  {s === 'all' ? 'All' : s === 'active' ? 'With Lease' : 'No Lease'}
+                  {s === 'all' ? t('common.all') : s === 'active' ? t('tenants.activeLease') : t('tenants.noLease')}
                 </button>
               ))}
             </div>
             <div className="search-bar">
               <Search size={15} color="var(--text-muted)" />
               <input
-                placeholder="Search tenants…"
+                placeholder={t('tenants.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -440,14 +443,14 @@ export default function Tenants() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Tenant</th>
-              <th>Phone</th>
-              <th>Email</th>
-              <th>Unit</th>
-              <th>Rent (৳)</th>
-              <th>Portal Login</th>
-              <th>Lease</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('tenants.fullName')}</th>
+              <th>{t('tenants.phone')}</th>
+              <th>{t('tenants.email')}</th>
+              <th>{t('tenants.unitAssigned')}</th>
+              <th>{t('tenants.rent')} ({t('common.currency')})</th>
+              <th>{t('tenants.portalAccess')}</th>
+              <th>{t('tenants.leaseStatus')}</th>
+              <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -461,55 +464,55 @@ export default function Tenants() {
               <tr><td colSpan={8}>
                 <div className="empty-state">
                   <Users size={36} className="empty-icon" />
-                  <div className="empty-title">No tenants found</div>
-                  <div className="empty-desc">Register your first tenant to get started.</div>
+                  <div className="empty-title">{t('tenants.noTenants')}</div>
+                  <div className="empty-desc">{t('tenants.noTenantsDesc')}</div>
                 </div>
               </td></tr>
-            ) : tenants.map((t) => (
-              <tr key={t.id}>
+            ) : tenants.map((t_item) => (
+              <tr key={t_item.id}>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%',
-                      background: `hsl(${(t.full_name.charCodeAt(0) * 7) % 360}, 60%, 25%)`,
-                      border: `2px solid hsl(${(t.full_name.charCodeAt(0) * 7) % 360}, 60%, 40%)`,
+                      background: `hsl(${(t_item.full_name.charCodeAt(0) * 7) % 360}, 60%, 25%)`,
+                      border: `2px solid hsl(${(t_item.full_name.charCodeAt(0) * 7) % 360}, 60%, 40%)`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '0.85rem', fontWeight: 700, flexShrink: 0,
-                      color: `hsl(${(t.full_name.charCodeAt(0) * 7) % 360}, 70%, 70%)`,
+                      color: `hsl(${(t_item.full_name.charCodeAt(0) * 7) % 360}, 70%, 70%)`,
                     }}>
-                      {t.full_name.charAt(0).toUpperCase()}
+                      {t_item.full_name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700 }}>{t.full_name}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.id.slice(0, 8)}…</div>
+                      <div style={{ fontWeight: 700 }}>{t_item.full_name}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t_item.id.slice(0, 8)}…</div>
                     </div>
                   </div>
                 </td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-secondary)', fontSize: '0.83rem' }}>
-                    <Phone size={12} /> {t.phone_number}
+                    <Phone size={12} /> {t_item.phone_number}
                   </div>
                 </td>
                 <td style={{ color: 'var(--text-secondary)', fontSize: '0.83rem' }}>
-                  {t.email ? (
+                  {t_item.email ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Mail size={12} /> {t.email}
+                      <Mail size={12} /> {t_item.email}
                     </div>
                   ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                 </td>
                 <td>
-                  {t.unit_number ? (
+                  {t_item.unit_number ? (
                     <div>
-                      <div style={{ fontWeight: 600 }}>{t.unit_number}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.property_name}</div>
+                      <div style={{ fontWeight: 600 }}>{t_item.unit_number}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t_item.property_name}</div>
                     </div>
                   ) : <span style={{ color: 'var(--text-muted)' }}>No unit</span>}
                 </td>
                 <td className="font-mono">
-                  {t.base_rent ? `৳${Number(t.base_rent).toLocaleString()}` : '—'}
+                  {t_item.base_rent ? `৳${Number(t_item.base_rent).toLocaleString()}` : '—'}
                 </td>
                 <td>
-                  {t.has_login ? (
+                  {t_item.has_login ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#4ade80', fontSize: '0.8rem' }}>
                       <CheckCircle2 size={14} /> Active
                     </div>
@@ -517,7 +520,7 @@ export default function Tenants() {
                     <button
                       className="btn btn-ghost btn-sm"
                       style={{ fontSize: '0.75rem', gap: 4, color: 'var(--accent-amber)' }}
-                      onClick={() => setLoginModal(t)}
+                      onClick={() => setLoginModal(t_item)}
                       title="Set portal login for this tenant"
                     >
                       <KeyRound size={13} /> Set Login
@@ -525,7 +528,7 @@ export default function Tenants() {
                   )}
                 </td>
                 <td>
-                  {t.lease_id ? (
+                  {t_item.lease_id ? (
                     <span className="badge badge-occupied">Active Lease</span>
                   ) : (
                     <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>No Lease</span>
@@ -535,8 +538,8 @@ export default function Tenants() {
                   <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                     <button
                       className="btn btn-ghost btn-sm btn-icon"
-                      id={`edit-tenant-${t.id}`}
-                      onClick={() => { setEditing(t); setModalOpen(true); }}
+                      id={`edit-tenant-${t_item.id}`}
+                      onClick={() => { setEditing(t_item); setModalOpen(true); }}
                       title="Edit"
                     >
                       <Pencil size={15} />
@@ -544,8 +547,8 @@ export default function Tenants() {
                     <button
                       className="btn btn-ghost btn-sm btn-icon"
                       style={{ color: 'var(--accent-rose)' }}
-                      id={`delete-tenant-${t.id}`}
-                      onClick={() => setDeleteModal(t)}
+                      id={`delete-tenant-${t_item.id}`}
+                      onClick={() => setDeleteModal(t_item)}
                       title="Delete"
                     >
                       <Trash2 size={15} />
@@ -561,7 +564,7 @@ export default function Tenants() {
         {meta.totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Showing {tenants.length} of {meta.total} tenants
+              {t('common.showing')} {tenants.length} {t('common.of')} {meta.total} {t('nav.tenants').toLowerCase()}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -569,17 +572,17 @@ export default function Tenants() {
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
-                Previous
+                {t('common.previous')}
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
-                Page {page} of {meta.totalPages}
+                {t('common.page')} {page} {t('common.of')} {meta.totalPages}
               </div>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
                 disabled={page === meta.totalPages}
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </div>
