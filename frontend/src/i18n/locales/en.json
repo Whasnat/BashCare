@@ -193,7 +193,7 @@
     "billingMonth": "Billing Month",
     "baseRent": "Base Rent",
     "utility": "Utility",
-    "totalDue": "Total Due",
+    "totalDue": "Invoice Total",
     "paid": "Paid",
     "balance": "Balance",
     "cash": "Cash",
@@ -319,7 +319,7 @@
     "payNow": "Pay Now",
     "nothingDue": "Nothing due right now!",
     "allPaid": "All invoices are paid. You're all set.",
-    "totalDue": "Total Due",
+    "totalDue": "Invoice Total",
     "amountPaid": "Amount Paid",
     "balanceRemaining": "Balance Remaining"
   },
