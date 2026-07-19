@@ -1,4 +1,5 @@
 import { queryWithRLS, transactionWithRLS } from '../config/database.js';
+import notificationService from '../services/notificationService.js';
 
 /**
  * Double-entry payment allocation.
@@ -126,6 +127,16 @@ export default async function paymentsRoutes(fastify) {
     let invoiceStatus = null;
     if (action === 'approve') {
       invoiceStatus = await allocatePayment(req.user.landlord_id, payment.invoice_id, payment.amount);
+      
+      // Notify Tenant
+      notificationService.sendNotification(
+        payment.tenant_id,
+        'PAYMENT_CONFIRMED',
+        'Payment Approved',
+        `Your payment of ৳${payment.amount} has been approved and applied to your invoice.`,
+        payment.id,
+        'payment'
+      );
     } else {
       // On reject, revert invoice status back to its prior state
       await queryWithRLS(req.user.landlord_id,
@@ -134,6 +145,16 @@ export default async function paymentsRoutes(fastify) {
            updated_at = NOW()
          WHERE id = $1 AND status = 'PENDING_VERIFICATION'`,
         [payment.invoice_id]
+      );
+      
+      // Notify Tenant
+      notificationService.sendNotification(
+        payment.tenant_id,
+        'PAYMENT_REJECTED',
+        'Payment Rejected',
+        `Your payment of ৳${payment.amount} was rejected. ${notes ? `Reason: ${notes}` : 'Please contact your landlord.'}`,
+        payment.id,
+        'payment'
       );
     }
 

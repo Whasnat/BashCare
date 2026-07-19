@@ -1,12 +1,29 @@
-import { Menu, Bell, Sun, Moon, Monitor, Globe } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Menu, Bell, Sun, Moon, Monitor, Globe, Check, CheckCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/authStore';
 import useThemeStore from '../store/themeStore';
+import useNotifications from '../hooks/useNotifications';
 
 export default function Topbar({ onMenuToggle }) {
   const { user } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
   const { t, i18n } = useTranslation();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  
+  const [showNotifications, setShowNotifications] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const cycleTheme = () => {
     const order = ['dark', 'light', 'system'];
@@ -63,9 +80,78 @@ export default function Topbar({ onMenuToggle }) {
         >
           <ThemeIcon size={18} />
         </button>
-        <button className="btn-icon btn-ghost notification-btn" aria-label="Notifications">
-          <Bell size={20} />
-        </button>
+        
+        <div style={{ position: 'relative' }} ref={dropdownRef}>
+          <button 
+            className="btn-icon btn-ghost notification-btn" 
+            aria-label="Notifications"
+            onClick={() => setShowNotifications(!showNotifications)}
+            style={{ position: 'relative' }}
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute', top: 2, right: 2, background: 'var(--accent-rose)', 
+                color: 'white', fontSize: '0.6rem', fontWeight: 'bold', 
+                minWidth: 16, height: 16, borderRadius: 8, display: 'flex', 
+                alignItems: 'center', justifyContent: 'center', padding: '0 4px'
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+          
+          {showNotifications && (
+            <div style={{
+              position: 'absolute', top: '100%', right: 0, marginTop: 8,
+              width: 320, maxHeight: 400, overflowY: 'auto',
+              background: 'var(--bg-elevated)', borderRadius: 12,
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)',
+              zIndex: 100, display: 'flex', flexDirection: 'column'
+            }}>
+              <div style={{
+                padding: '12px 16px', borderBottom: '1px solid var(--border-color)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1
+              }}>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Notifications</h3>
+                {unreadCount > 0 && (
+                  <button onClick={markAllAsRead} className="btn-ghost" style={{ fontSize: '0.75rem', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)' }}>
+                    <CheckCheck size={14} /> Mark all read
+                  </button>
+                )}
+              </div>
+              
+              <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    No notifications yet
+                  </div>
+                ) : (
+                  notifications.map(n => (
+                    <div 
+                      key={n.id} 
+                      onClick={() => !n.is_read && markAsRead(n.id)}
+                      style={{
+                        padding: '10px 12px', borderRadius: 8, cursor: n.is_read ? 'default' : 'pointer',
+                        background: n.is_read ? 'transparent' : 'var(--bg-hover)',
+                        transition: 'background 0.2s', borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--accent-primary)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: n.is_read ? 500 : 600, color: 'var(--text-primary)' }}>{n.title}</span>
+                        {!n.is_read && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-primary)', marginTop: 4 }}></span>}
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        {n.message}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

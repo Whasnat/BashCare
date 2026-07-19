@@ -18,6 +18,7 @@ import reportsRoutes from './routes/reports.js';
 import adminRoutes from './routes/admin.js';
 import webhooksRoutes from './routes/webhooks.js';
 import portalRoutes from './routes/portal.js';
+import notificationsRoutes from './routes/notifications.js';
 
 const fastify = Fastify({
   logger: process.env.NODE_ENV === 'production'
@@ -48,7 +49,12 @@ await fastify.register(jwt, {
 // ─── Auth Decorator ───────────────────────────────────────────────────
 fastify.decorate('authenticate', async (request, reply) => {
   try {
-    await request.jwtVerify();
+    if (request.query && request.query.token) {
+      const decoded = fastify.jwt.verify(request.query.token);
+      request.user = decoded;
+    } else {
+      await request.jwtVerify();
+    }
   } catch (err) {
     reply.code(401).send({ error: 'Unauthorized', message: 'Invalid or expired token' });
   }
@@ -75,6 +81,7 @@ fastify.register(settingsRoutes, { prefix: '/api/v1/settings' });
 fastify.register(reportsRoutes, { prefix: '/api/v1/reports' });
 fastify.register(webhooksRoutes, { prefix: '/api/v1/webhooks' });
 fastify.register(portalRoutes, { prefix: '/api/v1/portal' });
+fastify.register(notificationsRoutes, { prefix: '/api/v1/notifications' });
 
 // ─── Health Check ─────────────────────────────────────────────────────
 fastify.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));

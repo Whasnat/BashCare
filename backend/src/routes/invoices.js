@@ -1,4 +1,5 @@
 import { queryWithRLS, transactionWithRLS } from '../config/database.js';
+import notificationService from '../services/notificationService.js';
 
 export default async function invoicesRoutes(fastify) {
   const auth = { preHandler: [fastify.authenticate] };
@@ -95,6 +96,16 @@ export default async function invoicesRoutes(fastify) {
       [req.user.landlord_id, lease_id, lease.tenant_id, billing_month, lease.base_rent, dueDate]
     );
     if (!result.rows[0]) return reply.code(409).send({ error: 'Invoice already exists for this month' });
+    
+    notificationService.sendNotification(
+      lease.tenant_id,
+      'INVOICE_GENERATED',
+      'New Invoice Generated',
+      `Your invoice for ${billing_month} has been generated and is due on the 10th.`,
+      result.rows[0].id,
+      'invoice'
+    );
+
     return reply.code(201).send(result.rows[0]);
   });
 
@@ -129,11 +140,22 @@ export default async function invoicesRoutes(fastify) {
            SELECT 1 FROM ledger_invoices li
            WHERE li.lease_id = l.id AND li.billing_month = $2
          )
-       RETURNING id`,
+       RETURNING id, tenant_id`,
       [req.user.landlord_id, billing_month, dueDate.toISOString().split('T')[0]]
     );
 
     const generated = result.rowCount;
+
+    for (const row of result.rows) {
+      notificationService.sendNotification(
+        row.tenant_id,
+        'INVOICE_GENERATED',
+        'New Invoice Generated',
+        `Your invoice for ${billing_month} has been generated and is due on the 10th.`,
+        row.id,
+        'invoice'
+      );
+    }
 
     // Count how many were skipped (already existed)
     const totalLeases = await queryWithRLS(
