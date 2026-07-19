@@ -113,6 +113,19 @@ class ErrorBoundary extends Component {
   }
 }
 
+// ─── Public Route Wrapper ─────────────────────────────────────────────
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated, user } = useAuthStore();
+  
+  if (isAuthenticated) {
+    if (user?.role === 'tenant') return <Navigate to="/portal/dashboard" replace />;
+    if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
 // ─── Protected Route Wrapper ──────────────────────────────────────────
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -160,12 +173,12 @@ function App() {
           />
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
               <Route path="/force-change-password" element={<ForcePasswordChange />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/setup" element={<SetupAccount />} />
+              <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+              <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+              <Route path="/setup" element={<PublicRoute><SetupAccount /></PublicRoute>} />
 
               {/* Landlord & Manager Routes */}
               <Route path="/" element={<ProtectedRoute allowedRoles={['landlord', 'manager']}><Layout /></ProtectedRoute>}>
