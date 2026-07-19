@@ -573,19 +573,19 @@ export default function Billing() {
         open={genModalOpen}
         onClose={() => setGenModalOpen(false)}
         leases={leases}
-        onGenerated={(inv) => { setInvoices((p) => [inv, ...p]); fetchData(); }}
+        onGenerated={() => refetch()}
       />
       <CashPaymentModal
         open={!!cashTarget}
         invoice={cashTarget}
         onClose={() => setCashTarget(null)}
-        onPaid={() => fetchData()}
+        onPaid={() => refetch()}
       />
       <AdjustModal
         open={!!adjustTarget}
         invoice={adjustTarget}
         onClose={() => setAdjustTarget(null)}
-        onAdjusted={() => fetchData()}
+        onAdjusted={() => refetch()}
       />
       
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
