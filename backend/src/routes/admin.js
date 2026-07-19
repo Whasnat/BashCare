@@ -140,7 +140,12 @@ export default async function adminRoutes(fastify) {
       queryAdmin(`SELECT COUNT(*) FROM leases WHERE is_active = TRUE`),
       queryAdmin(`SELECT SUM(amount_paid) AS total_collected FROM ledger_invoices WHERE status = 'PAID'`),
       queryAdmin(`SELECT COUNT(*) FROM users`),
-      queryAdmin(`SELECT SUM(balance_remaining) AS total_outstanding FROM ledger_invoices WHERE status != 'PAID'`),
+      queryAdmin(`
+        SELECT SUM(ict.balance_remaining) AS total_outstanding 
+        FROM ledger_invoices i
+        JOIN invoice_calculated_totals ict ON ict.id = i.id
+        WHERE i.status != 'PAID'
+      `),
       queryAdmin(`
         SELECT 
           TO_CHAR(billing_month, 'Mon YYYY') AS month,
