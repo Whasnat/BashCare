@@ -31,4 +31,26 @@ export default async function cronRoutes(fastify, options) {
       return reply.code(500).send({ error: 'Internal Server Error', message: err.message });
     }
   });
+
+  // ─── External Trigger for Daily Reminders & Overdue Penalties ────────
+  fastify.post('/daily-tasks', async (request, reply) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || request.headers['x-cron-secret'] !== cronSecret) {
+      return reply.code(401).send({ error: 'Unauthorized', message: 'Invalid or missing CRON_SECRET' });
+    }
+
+    try {
+      const remindersResult = await billingService.sendPaymentReminders();
+      const overdueResult = await billingService.processOverdueInvoices();
+      
+      return reply.code(200).send({
+        message: 'Daily tasks triggered successfully',
+        reminders: remindersResult,
+        overdue: overdueResult
+      });
+    } catch (err) {
+      fastify.log.error('Daily cron trigger failed:', err);
+      return reply.code(500).send({ error: 'Internal Server Error', message: err.message });
+    }
+  });
 }

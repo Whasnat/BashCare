@@ -121,6 +121,28 @@ export default async function invoicesRoutes(fastify) {
     return reply.code(201).send(result.rows[0]);
   });
 
+  // Waive the late fee for an invoice
+  fastify.post('/:id/waive-late-fee', auth, async (req, reply) => {
+    const result = await queryWithRLS(
+      req.user.landlord_id,
+      `UPDATE ledger_invoices 
+       SET late_fees = 0, 
+           late_fee_waived = TRUE,
+           amount_due = base_rent + utility_charges,
+           status = CASE WHEN amount_paid >= (base_rent + utility_charges) THEN 'PAID' ELSE status END,
+           updated_at = NOW()
+       WHERE id = $1 
+       RETURNING *`,
+      [req.params.id]
+    );
+
+    if (result.rowCount === 0) {
+      return reply.code(404).send({ error: 'Invoice not found or unauthorized' });
+    }
+    
+    return reply.code(200).send(result.rows[0]);
+  });
+
   // ─── Generate invoices for ALL active leases for the current month ────
   fastify.post('/generate-all', auth, async (req, reply) => {
     const now = new Date();

@@ -15,7 +15,21 @@ class CronService {
       }
     }, {
       scheduled: true,
-      timezone: 'Asia/Dhaka' // Using Asia/Dhaka since BashaCare targets Bangladesh
+      timezone: 'Asia/Dhaka'
+    });
+
+    // Runs every day at 00:00
+    cron.schedule('0 0 * * *', async () => {
+      console.log('[CronService] Daily overdue & reminder tasks triggered.');
+      try {
+        await billingService.sendPaymentReminders();
+        await billingService.processOverdueInvoices();
+      } catch (err) {
+        console.error('[CronService] Error in daily tasks:', err);
+      }
+    }, {
+      scheduled: true,
+      timezone: 'Asia/Dhaka'
     });
 
     console.log('[CronService] Cron jobs initialized successfully.');

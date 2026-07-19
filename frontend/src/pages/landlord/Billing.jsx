@@ -349,6 +349,17 @@ export default function Billing() {
     }
   };
 
+  const handleWaiveLateFee = async (invoiceId) => {
+    if (!window.confirm('Are you sure you want to waive the late fee for this invoice?')) return;
+    try {
+      await api.post(`/invoices/${invoiceId}/waive-late-fee`);
+      toast.success('Late fee waived successfully');
+      refetch();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to waive late fee');
+    }
+  };
+
   const formatMonth = (d) => d ? new Date(d).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : '—';
 
   const totals = {
@@ -503,6 +514,16 @@ export default function Billing() {
                         >
                           {t('billing.adjust')}
                         </button>
+                        {Number(inv.late_fees) > 0 && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ color: 'var(--accent-amber)' }}
+                            onClick={() => handleWaiveLateFee(inv.id)}
+                            title="Waive Late Fee"
+                          >
+                            Waive Late Fee
+                          </button>
+                        )}
                       </>
                     )}
                     <button
