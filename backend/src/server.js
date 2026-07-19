@@ -19,6 +19,8 @@ import adminRoutes from './routes/admin.js';
 import webhooksRoutes from './routes/webhooks.js';
 import portalRoutes from './routes/portal.js';
 import notificationsRoutes from './routes/notifications.js';
+import cronRoutes from './routes/cron.js';
+import cronService from './services/cronService.js';
 
 const fastify = Fastify({
   logger: process.env.NODE_ENV === 'production'
@@ -82,6 +84,10 @@ fastify.register(reportsRoutes, { prefix: '/api/v1/reports' });
 fastify.register(webhooksRoutes, { prefix: '/api/v1/webhooks' });
 fastify.register(portalRoutes, { prefix: '/api/v1/portal' });
 fastify.register(notificationsRoutes, { prefix: '/api/v1/notifications' });
+fastify.register(cronRoutes, { prefix: '/api/v1/cron' });
+
+// ─── Initialize Background Cron Jobs ──────────────────────────────────
+cronService.startCronJobs();
 
 // ─── Health Check ─────────────────────────────────────────────────────
 fastify.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
