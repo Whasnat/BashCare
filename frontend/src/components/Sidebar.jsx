@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, DoorOpen, Users, FileText,
-  Wallet, Receipt, Zap, PieChart, Settings, Home, X, Wrench
+  Wallet, Receipt, Zap, PieChart, Settings, Home, X, Wrench, Activity
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/authStore';
@@ -18,6 +18,7 @@ const NAV_ITEMS = {
     { labelKey: 'nav.utilities', path: '/utilities', icon: Zap },
     { labelKey: 'nav.maintenance', path: '/maintenance', icon: Wrench },
     { labelKey: 'nav.reports', path: '/reports', icon: PieChart },
+    { labelKey: 'nav.activityLog', path: '/activity', icon: Activity },
     { labelKey: 'nav.settings', path: '/settings', icon: Settings },
   ],
   manager: [

@@ -1,4 +1,5 @@
 import { queryWithRLS, queryAdmin } from '../config/database.js';
+import activityService from '../services/activityService.js';
 
 export default async function maintenanceRoutes(fastify) {
   const auth = {
@@ -65,7 +66,19 @@ export default async function maintenanceRoutes(fastify) {
       [landlordId, tenantId, property_id, unit_id, issue_type, priority || 'LOW', title, description, photo_url]
     );
 
-    return reply.code(201).send(result.rows[0]);
+    const newReq = result.rows[0];
+    
+    // Only log if tenant created it (which is always the case here, but using their ID)
+    activityService.logActivity(
+      landlordId,
+      req.user.id,
+      'MAINTENANCE',
+      newReq.id,
+      'CREATED',
+      `Tenant submitted a maintenance request: ${title}`
+    );
+
+    return reply.code(201).send(newReq);
   });
 
   // ─── Update maintenance request (Landlord) ──────────────────────────
@@ -144,6 +157,21 @@ export default async function maintenanceRoutes(fastify) {
       values
     );
 
-    return result.rows[0];
+    const updatedReq = result.rows[0];
+
+    let descParts = [];
+    if (status) descParts.push(`status to ${status}`);
+    if (cost !== undefined) descParts.push(`cost to ৳${cost}`);
+    
+    activityService.logActivity(
+      landlordId,
+      req.user.id,
+      'MAINTENANCE',
+      updatedReq.id,
+      'UPDATED',
+      `Updated maintenance request ${descParts.join(' and ')}`
+    );
+
+    return updatedReq;
   });
 }

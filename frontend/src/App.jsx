@@ -37,6 +37,7 @@ const Payments = lazy(() => import('./pages/landlord/Payments'));
 const Settings = lazy(() => import('./pages/landlord/Settings'));
 const Reports = lazy(() => import('./pages/landlord/Reports'));
 const Maintenance = lazy(() => import('./pages/landlord/Maintenance'));
+const ActivityLog = lazy(() => import('./pages/landlord/ActivityLog'));
 
 // Manager Pages
 const Utilities = lazy(() => import('./pages/manager/Utilities'));
@@ -195,6 +196,7 @@ function App() {
                 <Route path="utilities" element={<Utilities />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="maintenance" element={<Maintenance />} />
+                <Route path="activity" element={<ActivityLog />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
 

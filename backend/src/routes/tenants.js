@@ -2,6 +2,7 @@ import { queryWithRLS, queryAdmin } from '../config/database.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { sendInviteEmail } from '../services/emailService.js';
+import activityService from '../services/activityService.js';
 
 const ENCRYPTION_KEY = process.env.NID_ENCRYPTION_KEY || (
   process.env.NODE_ENV === 'production'
@@ -117,7 +118,18 @@ export default async function tenantsRoutes(fastify) {
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [req.user.landlord_id, full_name, phone_number, email, encryptedNID, emergency_contact, emergency_phone]
     );
-    return reply.code(201).send({ ...result.rows[0], encrypted_national_id: undefined });
+    const newTenant = result.rows[0];
+
+    activityService.logActivity(
+      req.user.landlord_id,
+      req.user.id,
+      'TENANT',
+      newTenant.id,
+      'CREATED',
+      `Added new tenant: ${full_name}`
+    );
+
+    return reply.code(201).send({ ...newTenant, encrypted_national_id: undefined });
   });
 
   fastify.patch('/:id', auth, async (req, reply) => {
@@ -215,6 +227,15 @@ export default async function tenantsRoutes(fastify) {
       // Send the invite email automatically in the background
       sendInviteEmail(email, tenantRes.rows[0].full_name, setupLink, landlordName);
 
+      activityService.logActivity(
+        req.user.landlord_id,
+        req.user.id,
+        'TENANT',
+        req.params.id,
+        'INVITED',
+        `Sent setup invitation to tenant via email`
+      );
+
       return reply.code(201).send({ message: 'Invite link generated and email sent', setupLink });
     } catch (err) {
       if (err.code === '23505') return reply.code(409).send({ error: 'This email is already in use' });
@@ -238,6 +259,16 @@ export default async function tenantsRoutes(fastify) {
       `DELETE FROM tenant_profiles WHERE id = $1`,
       [req.params.id]
     );
+
+    activityService.logActivity(
+      req.user.landlord_id,
+      req.user.id,
+      'TENANT',
+      req.params.id,
+      'DELETED',
+      `Deleted tenant profile`
+    );
+
     return reply.code(204).send();
   });
 }

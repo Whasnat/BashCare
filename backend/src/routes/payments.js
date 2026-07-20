@@ -1,5 +1,6 @@
 import { queryWithRLS, transactionWithRLS } from '../config/database.js';
 import notificationService from '../services/notificationService.js';
+import activityService from '../services/activityService.js';
 
 /**
  * Double-entry payment allocation.
@@ -57,6 +58,16 @@ export default async function paymentsRoutes(fastify) {
     );
 
     const newStatus = await allocatePayment(req.user.landlord_id, invoice_id, amount);
+    
+    activityService.logActivity(
+      req.user.landlord_id,
+      req.user.id,
+      'PAYMENT',
+      paymentResult.rows[0].id,
+      'VERIFIED',
+      `Recorded cash payment of ৳${amount}`
+    );
+
     return reply.code(201).send({ payment: paymentResult.rows[0], invoice_status: newStatus });
   });
 
@@ -84,6 +95,15 @@ export default async function paymentsRoutes(fastify) {
     await queryWithRLS(req.user.landlord_id,
       `UPDATE ledger_invoices SET status = 'PENDING_VERIFICATION', updated_at = NOW() WHERE id = $1`,
       [invoice_id]
+    );
+
+    activityService.logActivity(
+      req.user.landlord_id,
+      req.user.id,
+      'PAYMENT',
+      paymentResult.rows[0].id,
+      'RECORDED',
+      `Submitted payment of ৳${amount} for verification`
     );
 
     return reply.code(201).send(paymentResult.rows[0]);
@@ -137,6 +157,15 @@ export default async function paymentsRoutes(fastify) {
         payment.id,
         'payment'
       );
+      
+      activityService.logActivity(
+        req.user.landlord_id,
+        req.user.id,
+        'PAYMENT',
+        payment.id,
+        'VERIFIED',
+        `Verified payment of ৳${payment.amount} via ${payment.method}`
+      );
     } else {
       // On reject, revert invoice status back to its prior state
       await queryWithRLS(req.user.landlord_id,
@@ -152,9 +181,18 @@ export default async function paymentsRoutes(fastify) {
         payment.tenant_id,
         'PAYMENT_REJECTED',
         'Payment Rejected',
-        `Your payment of ৳${payment.amount} was rejected. ${notes ? `Reason: ${notes}` : 'Please contact your landlord.'}`,
+        `Your payment submission of ৳${payment.amount} was rejected. Please contact your landlord or try again.`,
         payment.id,
         'payment'
+      );
+
+      activityService.logActivity(
+        req.user.landlord_id,
+        req.user.id,
+        'PAYMENT',
+        payment.id,
+        'REJECTED',
+        `Rejected payment of ৳${payment.amount}`
       );
     }
 

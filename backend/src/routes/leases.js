@@ -1,4 +1,5 @@
 import { queryWithRLS, transactionWithRLS } from '../config/database.js';
+import activityService from '../services/activityService.js';
 
 export default async function leasesRoutes(fastify) {
   const auth = { preHandler: [fastify.authenticate] };
@@ -76,8 +77,18 @@ export default async function leasesRoutes(fastify) {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [req.user.landlord_id, unit_id, tenant_id, base_rent, security_deposit || 0, utility_tariff || 0, start_date, endDateValue, notes || null]
+    const newLease = result.rows[0];
+
+    activityService.logActivity(
+      req.user.landlord_id,
+      req.user.id,
+      'LEASE',
+      newLease.id,
+      'CREATED',
+      `Created lease for unit starting ${start_date}`
     );
-    return reply.code(201).send(result.rows[0]);
+
+    return reply.code(201).send(newLease);
   });
 
   // Terminate a lease
@@ -90,6 +101,16 @@ export default async function leasesRoutes(fastify) {
       [req.params.id]
     );
     if (!result.rows[0]) return reply.code(404).send({ error: 'Active lease not found' });
+    
+    activityService.logActivity(
+      req.user.landlord_id,
+      req.user.id,
+      'LEASE',
+      req.params.id,
+      'TERMINATED',
+      `Terminated active lease`
+    );
+
     return result.rows[0];
   });
 }
