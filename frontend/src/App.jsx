@@ -36,6 +36,7 @@ const Billing = lazy(() => import('./pages/landlord/Billing'));
 const Payments = lazy(() => import('./pages/landlord/Payments'));
 const Settings = lazy(() => import('./pages/landlord/Settings'));
 const Reports = lazy(() => import('./pages/landlord/Reports'));
+const Maintenance = lazy(() => import('./pages/landlord/Maintenance'));
 
 // Manager Pages
 const Utilities = lazy(() => import('./pages/manager/Utilities'));
@@ -49,6 +50,7 @@ const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const TenantDashboard = lazy(() => import('./pages/tenant/TenantDashboard'));
 const TenantInvoices = lazy(() => import('./pages/tenant/TenantInvoices'));
 const TenantInvoiceDetail = lazy(() => import('./pages/tenant/TenantInvoiceDetail'));
+const TenantMaintenance = lazy(() => import('./pages/tenant/TenantMaintenance'));
 
 // ─── Page Loading Spinner ────────────────────────────────────────────
 function PageLoader() {
@@ -192,6 +194,7 @@ function App() {
                 <Route path="payments" element={<Payments />} />
                 <Route path="utilities" element={<Utilities />} />
                 <Route path="reports" element={<Reports />} />
+                <Route path="maintenance" element={<Maintenance />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
 
@@ -209,6 +212,7 @@ function App() {
                 <Route path="dashboard" element={<TenantDashboard />} />
                 <Route path="invoices" element={<TenantInvoices />} />
                 <Route path="invoices/:id" element={<TenantInvoiceDetail />} />
+                <Route path="maintenance" element={<TenantMaintenance />} />
               </Route>
 
               {/* Fallback */}

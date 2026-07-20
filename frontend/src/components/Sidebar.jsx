@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, DoorOpen, Users, FileText,
-  Wallet, Receipt, Zap, PieChart, Settings, Home, X
+  Wallet, Receipt, Zap, PieChart, Settings, Home, X, Wrench
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/authStore';
@@ -16,6 +16,7 @@ const NAV_ITEMS = {
     { labelKey: 'nav.billing', path: '/billing', icon: Receipt },
     { labelKey: 'nav.payments', path: '/payments', icon: Wallet },
     { labelKey: 'nav.utilities', path: '/utilities', icon: Zap },
+    { labelKey: 'nav.maintenance', path: '/maintenance', icon: Wrench },
     { labelKey: 'nav.reports', path: '/reports', icon: PieChart },
     { labelKey: 'nav.settings', path: '/settings', icon: Settings },
   ],
@@ -27,10 +28,12 @@ const NAV_ITEMS = {
     { labelKey: 'nav.leases', path: '/leases', icon: FileText },
     { labelKey: 'nav.billing', path: '/billing', icon: Receipt },
     { labelKey: 'nav.utilities', path: '/utilities', icon: Zap },
+    { labelKey: 'nav.maintenance', path: '/maintenance', icon: Wrench },
   ],
   tenant: [
     { labelKey: 'nav.myDashboard', path: '/portal/dashboard', icon: Home },
     { labelKey: 'nav.myInvoices', path: '/portal/invoices', icon: Receipt },
+    { labelKey: 'nav.maintenance', path: '/portal/maintenance', icon: Wrench },
   ],
   admin: [
     { labelKey: 'nav.adminDashboard', path: '/admin/dashboard', icon: LayoutDashboard },
