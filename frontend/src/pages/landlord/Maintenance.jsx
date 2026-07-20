@@ -96,15 +96,16 @@ export default function Maintenance() {
               <th>Issue Type</th>
               <th>Title</th>
               <th>Priority</th>
+              <th>Cost (৳)</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="8" style={{ textAlign: 'center' }}>Loading...</td></tr>
+              <tr><td colSpan="9" style={{ textAlign: 'center' }}>Loading...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan="8" style={{ textAlign: 'center' }}>No requests found</td></tr>
+              <tr><td colSpan="9" style={{ textAlign: 'center' }}>No requests found</td></tr>
             ) : (
               filtered.map(req => (
                 <tr key={req.id}>
@@ -122,6 +123,9 @@ export default function Maintenance() {
                     {req.title}
                   </td>
                   <td style={{ color: PRIORITY_INFO[req.priority], fontWeight: 600 }}>{req.priority}</td>
+                  <td style={{ fontWeight: 500, color: req.cost > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    {req.cost > 0 ? `৳${req.cost}` : '—'}
+                  </td>
                   <td>
                     <span className={`badge ${STATUS_INFO[req.status]?.cls}`}>{STATUS_INFO[req.status]?.label}</span>
                   </td>
