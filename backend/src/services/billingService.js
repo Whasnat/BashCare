@@ -30,8 +30,31 @@ class BillingService {
 
       const generated = result.rowCount;
 
-      // Send notifications for generated invoices
+      // Send notifications for generated invoices and process pending maintenance costs
       for (const row of result.rows) {
+        // 1. Check for unbilled maintenance requests with a cost
+        const maintenanceRes = await queryAdmin(
+          `SELECT id, cost FROM maintenance_requests 
+           WHERE tenant_id = $1 AND cost > 0 AND billed_invoice_id IS NULL`,
+          [row.tenant_id]
+        );
+
+        for (const req of maintenanceRes.rows) {
+          // Add ledger adjustment for the repair fee
+          await queryAdmin(
+            `INSERT INTO ledger_adjustments (landlord_id, invoice_id, adjustment_type, amount, note)
+             VALUES ($1, $2, 'REPAIR_FEE', $3, 'Maintenance Request Charge')`,
+            [row.landlord_id, row.id, req.cost]
+          );
+
+          // Mark maintenance request as billed
+          await queryAdmin(
+            `UPDATE maintenance_requests SET billed_invoice_id = $1 WHERE id = $2`,
+            [row.id, req.id]
+          );
+        }
+
+        // 2. Send invoice generation notification
         notificationService.sendNotification(
           row.tenant_id,
           'INVOICE_GENERATED',
