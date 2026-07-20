@@ -1,6 +1,7 @@
 import { queryWithRLS, queryAdmin } from '../config/database.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import { sendInviteEmail } from '../services/emailService.js';
 
 const ENCRYPTION_KEY = process.env.NID_ENCRYPTION_KEY || (
   process.env.NODE_ENV === 'production'
@@ -206,7 +207,15 @@ export default async function tenantsRoutes(fastify) {
       );
       
       const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/setup?token=${inviteToken}`;
-      return reply.code(201).send({ message: 'Invite link generated', setupLink });
+
+      // Get landlord details for the email
+      const landlordRes = await queryAdmin(`SELECT company_name FROM landlord_profiles WHERE id = $1`, [req.user.landlord_id]);
+      const landlordName = landlordRes.rows[0]?.company_name || 'BashaCare Property';
+
+      // Send the invite email automatically in the background
+      sendInviteEmail(email, tenantRes.rows[0].full_name, setupLink, landlordName);
+
+      return reply.code(201).send({ message: 'Invite link generated and email sent', setupLink });
     } catch (err) {
       if (err.code === '23505') return reply.code(409).send({ error: 'This email is already in use' });
       throw err;

@@ -215,9 +215,9 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <KeyRound size={24} />
             </div>
-            <h3 style={{ marginBottom: 8 }}>Invite Link Generated!</h3>
+            <h3 style={{ marginBottom: 8 }}>Invite Sent Successfully!</h3>
             <p style={{ color: 'var(--text-secondary)', marginBottom: 20, fontSize: '0.9rem' }}>
-              Share this secure link with the tenant. They will be able to set their own password and activate their account.
+              An email containing this secure link has been sent to the tenant. You can also share the link manually if needed.
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <input className="form-input" readOnly value={form.inviteLink} style={{ flex: 1, background: 'var(--bg-elevated)', fontFamily: 'monospace', fontSize: '0.85rem' }} />
