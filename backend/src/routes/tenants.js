@@ -200,8 +200,8 @@ export default async function tenantsRoutes(fastify) {
 
     try {
       await queryAdmin(
-        `INSERT INTO users (landlord_id, linked_entity_id, role, email, full_name, invite_token, invite_token_expires_at, invited_by, is_active)
-         VALUES ($1, $2, 'tenant', $3, $4, $5, $6, $7, FALSE)`,
+        `INSERT INTO users (landlord_id, linked_entity_id, role, email, full_name, invite_token, invite_token_expires_at, invited_by, is_active, password_hash)
+         VALUES ($1, $2, 'tenant', $3, $4, $5, $6, $7, FALSE, 'INVITED_PENDING_SETUP')`,
         [req.user.landlord_id, req.params.id, email, tenantRes.rows[0].full_name, inviteToken, expiresAt.toISOString(), req.user.id]
       );
       

@@ -138,6 +138,8 @@
     "withPortal": "With Portal",
     "withLease": "With Lease",
     "setPortalLogin": "Set Portal Login",
+    "generateLink": "Generate Invite Link",
+    "createLogin": "Create Login",
     "deleteTenantConfirm": "Delete Tenant?",
     "phFullName": "Abdul Karim",
     "phPhone": "+8801XXXXXXXXX",
