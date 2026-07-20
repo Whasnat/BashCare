@@ -170,22 +170,23 @@ export default function Maintenance() {
 
               <div style={{ marginTop: 20 }}>
                 <h4 style={{ fontSize: '0.9rem', marginBottom: 8, color: 'var(--text-muted)' }}>Update Status</h4>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {selectedReq.status !== 'PENDING' && (
-                    <button className="btn btn-secondary" onClick={() => updateStatus(selectedReq.id, 'PENDING')}>
-                      Mark Pending
-                    </button>
-                  )}
-                  {selectedReq.status !== 'IN_PROGRESS' && (
-                    <button className="btn btn-primary" onClick={() => updateStatus(selectedReq.id, 'IN_PROGRESS')}>
-                      Mark In Progress
-                    </button>
-                  )}
-                  {selectedReq.status !== 'RESOLVED' && (
-                    <button className="btn btn-primary" style={{ background: 'var(--accent-teal)' }} onClick={() => updateStatus(selectedReq.id, 'RESOLVED')}>
-                      Mark Resolved
-                    </button>
-                  )}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <select 
+                    className="form-input" 
+                    style={{ maxWidth: 200 }}
+                    value={selectedReq.status} 
+                    onChange={(e) => setSelectedReq({ ...selectedReq, status: e.target.value })}
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="RESOLVED">Resolved</option>
+                  </select>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => updateStatus(selectedReq.id, selectedReq.status)}
+                  >
+                    Save Status
+                  </button>
                 </div>
               </div>
             </div>
