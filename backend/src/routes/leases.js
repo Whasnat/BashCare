@@ -77,6 +77,7 @@ export default async function leasesRoutes(fastify) {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [req.user.landlord_id, unit_id, tenant_id, base_rent, security_deposit || 0, utility_tariff || 0, start_date, endDateValue, notes || null]
+    );
     const newLease = result.rows[0];
 
     activityService.logActivity(
