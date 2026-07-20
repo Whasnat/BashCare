@@ -37,14 +37,14 @@ export default function Maintenance() {
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
-  const updateStatus = async (id, newStatus) => {
+  const updateRequest = async (id, newStatus, newCost) => {
     try {
-      await api.patch(`/maintenance/${id}/status`, { status: newStatus });
-      toast.success('Status updated');
+      await api.patch(`/maintenance/${id}`, { status: newStatus, cost: newCost ? parseFloat(newCost) : 0 });
+      toast.success('Request updated successfully');
       setSelectedReq(null);
       fetchRequests();
     } catch (err) {
-      toast.error('Failed to update status');
+      toast.error('Failed to update request');
     }
   };
 
@@ -169,23 +169,45 @@ export default function Maintenance() {
               )}
 
               <div style={{ marginTop: 20 }}>
-                <h4 style={{ fontSize: '0.9rem', marginBottom: 8, color: 'var(--text-muted)' }}>Update Status</h4>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <select 
-                    className="form-input" 
-                    style={{ maxWidth: 200 }}
-                    value={selectedReq.status} 
-                    onChange={(e) => setSelectedReq({ ...selectedReq, status: e.target.value })}
-                  >
-                    <option value="PENDING">Pending</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="RESOLVED">Resolved</option>
-                  </select>
+                <h4 style={{ fontSize: '0.9rem', marginBottom: 8, color: 'var(--text-muted)' }}>Update Request</h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 4, color: 'var(--text-secondary)' }}>Status</label>
+                    <select 
+                      className="form-input" 
+                      value={selectedReq.status} 
+                      onChange={(e) => setSelectedReq({ ...selectedReq, status: e.target.value })}
+                    >
+                      <option value="PENDING">Pending</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="RESOLVED">Resolved</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 4, color: 'var(--text-secondary)' }}>Repair Cost (৳)</label>
+                    <input 
+                      type="number"
+                      className="form-input"
+                      placeholder="0.00"
+                      value={selectedReq.cost || ''}
+                      disabled={!!selectedReq.billed_invoice_id}
+                      onChange={(e) => setSelectedReq({ ...selectedReq, cost: e.target.value })}
+                    />
+                    {selectedReq.billed_invoice_id && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-teal)', marginTop: 4 }}>
+                        Already billed to tenant's invoice
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button 
                     className="btn btn-primary" 
-                    onClick={() => updateStatus(selectedReq.id, selectedReq.status)}
+                    onClick={() => updateRequest(selectedReq.id, selectedReq.status, selectedReq.cost)}
                   >
-                    Save Status
+                    Save Changes
                   </button>
                 </div>
               </div>

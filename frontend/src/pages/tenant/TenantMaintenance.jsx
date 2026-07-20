@@ -108,9 +108,15 @@ export default function TenantMaintenance() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 12 }}>
                   {selectedReq.description || 'No description provided.'}
                 </p>
-                <div style={{ display: 'flex', gap: 20, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                <div style={{ display: 'flex', gap: 20, fontSize: '0.85rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                   <div><strong>Issue Type:</strong> {selectedReq.issue_type}</div>
                   <div><strong>Priority:</strong> <span style={{ color: PRIORITY_INFO[selectedReq.priority], fontWeight: 600 }}>{selectedReq.priority}</span></div>
+                  {parseFloat(selectedReq.cost) > 0 && (
+                    <div style={{ padding: '2px 8px', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-teal)', borderRadius: 4, fontWeight: 500 }}>
+                      <strong>Repair Cost:</strong> ৳{selectedReq.cost}
+                      {selectedReq.billed_invoice_id && ' (Billed to Invoice)'}
+                    </div>
+                  )}
                 </div>
               </div>
 

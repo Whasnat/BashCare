@@ -68,18 +68,82 @@ export default async function maintenanceRoutes(fastify) {
     return reply.code(201).send(result.rows[0]);
   });
 
-  // ─── Update maintenance status (Landlord) ──────────────────────────
-  fastify.patch('/:id/status', auth, async (req, reply) => {
+  // ─── Update maintenance request (Landlord) ──────────────────────────
+  fastify.patch('/:id', auth, async (req, reply) => {
     if (req.user.role === 'tenant') return reply.code(403).send({ error: 'Unauthorized' });
-    const { status } = req.body;
+    const { status, cost } = req.body;
 
-    const result = await queryWithRLS(
-      req.user.landlord_id,
-      `UPDATE maintenance_requests SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
-      [status, req.params.id]
+    const reqId = req.params.id;
+    const landlordId = req.user.landlord_id;
+
+    // Get the request to ensure it exists and get tenant_id/billed_invoice_id
+    const currentReq = await queryWithRLS(
+      landlordId,
+      `SELECT tenant_id, billed_invoice_id, cost FROM maintenance_requests WHERE id = $1`,
+      [reqId]
     );
 
-    if (!result.rows[0]) return reply.code(404).send({ error: 'Request not found' });
+    if (!currentReq.rows[0]) return reply.code(404).send({ error: 'Request not found' });
+    const { tenant_id, billed_invoice_id } = currentReq.rows[0];
+
+    // Build dynamic update query
+    let updates = [];
+    let values = [];
+    let idx = 1;
+    
+    if (status) {
+      updates.push(`status = $${idx++}`);
+      values.push(status);
+    }
+    
+    let newInvoiceId = billed_invoice_id;
+    
+    if (cost !== undefined) {
+      updates.push(`cost = $${idx++}`);
+      values.push(cost);
+      
+      // If cost > 0 and it hasn't been billed yet
+      if (cost > 0 && !billed_invoice_id) {
+        // Find the active UNPAID invoice for this tenant's active lease
+        const invoiceRes = await queryWithRLS(
+          landlordId,
+          `SELECT i.id 
+           FROM ledger_invoices i
+           JOIN leases l ON l.id = i.lease_id
+           WHERE l.tenant_id = $1 AND l.is_active = TRUE AND i.status = 'UNPAID'
+           ORDER BY i.due_date ASC
+           LIMIT 1`,
+          [tenant_id]
+        );
+        
+        if (invoiceRes.rows[0]) {
+          newInvoiceId = invoiceRes.rows[0].id;
+          
+          // Insert adjustment
+          await queryWithRLS(
+            landlordId,
+            `INSERT INTO ledger_adjustments (landlord_id, invoice_id, adjustment_type, amount, note, created_by)
+             VALUES ($1, $2, 'REPAIR_FEE', $3, 'Maintenance Request Charge', $4)`,
+            [landlordId, newInvoiceId, cost, req.user.id]
+          );
+          
+          updates.push(`billed_invoice_id = $${idx++}`);
+          values.push(newInvoiceId);
+        }
+      }
+    }
+
+    if (updates.length === 0) return reply.code(400).send({ error: 'No fields to update' });
+
+    updates.push(`updated_at = NOW()`);
+    values.push(reqId);
+
+    const result = await queryWithRLS(
+      landlordId,
+      `UPDATE maintenance_requests SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values
+    );
+
     return result.rows[0];
   });
 }
