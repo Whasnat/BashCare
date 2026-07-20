@@ -20,6 +20,7 @@ export default function TenantMaintenance() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedReq, setSelectedReq] = useState(null);
 
   const fetchRequests = () => {
     setLoading(true);
@@ -56,7 +57,7 @@ export default function TenantMaintenance() {
               <th>Title</th>
               <th>Priority</th>
               <th>Status</th>
-              <th>Photo</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -77,11 +78,9 @@ export default function TenantMaintenance() {
                     <span className={`badge ${STATUS_INFO[req.status]?.cls}`}>{STATUS_INFO[req.status]?.label}</span>
                   </td>
                   <td>
-                    {req.photo_url ? (
-                      <a href={req.photo_url} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-teal)' }}>
-                        View Photo
-                      </a>
-                    ) : '—'}
+                    <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }} onClick={() => setSelectedReq(req)}>
+                      View
+                    </button>
                   </td>
                 </tr>
               ))
@@ -91,6 +90,47 @@ export default function TenantMaintenance() {
       </div>
 
       {modalOpen && <NewRequestModal onClose={() => setModalOpen(false)} onCreated={fetchRequests} />}
+
+      {selectedReq && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Request Details</h2>
+              <button className="icon-btn" onClick={() => setSelectedReq(null)}><X size={20} /></button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 10 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <h3 style={{ fontSize: '1.1rem', margin: 0 }}>{selectedReq.title}</h3>
+                  <span className={`badge ${STATUS_INFO[selectedReq.status]?.cls}`}>{STATUS_INFO[selectedReq.status]?.label}</span>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 12 }}>
+                  {selectedReq.description || 'No description provided.'}
+                </p>
+                <div style={{ display: 'flex', gap: 20, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <div><strong>Issue Type:</strong> {selectedReq.issue_type}</div>
+                  <div><strong>Priority:</strong> <span style={{ color: PRIORITY_INFO[selectedReq.priority], fontWeight: 600 }}>{selectedReq.priority}</span></div>
+                </div>
+              </div>
+
+              {selectedReq.photo_url && (
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', marginBottom: 8, color: 'var(--text-muted)' }}>Attached Photo</h4>
+                  <img 
+                    src={selectedReq.photo_url} 
+                    alt="Maintenance issue" 
+                    style={{ width: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 8, border: '1px solid var(--border-color)' }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="modal-actions" style={{ marginTop: 24 }}>
+              <button className="btn btn-secondary" onClick={() => setSelectedReq(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
