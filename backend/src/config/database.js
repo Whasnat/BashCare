@@ -38,6 +38,7 @@ export async function queryWithRLS(landlordId, query, params = []) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query('SET LOCAL ROLE bashacare_rls_user;');
     // Safe: landlordId is validated as UUID above
     await client.query(
       `SET LOCAL app.current_landlord_id = '${landlordId}';`
@@ -70,6 +71,7 @@ export async function transactionWithRLS(landlordId, operations) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query('SET LOCAL ROLE bashacare_rls_user;');
     await client.query(
       `SET LOCAL app.current_landlord_id = '${landlordId}';`
     );
