@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, DoorOpen, Users, FileText,
-  Wallet, Receipt, Zap, PieChart, Settings, Home, X, Wrench, Activity
+  Wallet, Receipt, Zap, PieChart, Settings, Home, X, Wrench, Activity, Calendar as CalendarIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/authStore';
@@ -11,8 +11,9 @@ const NAV_ITEMS = {
     { labelKey: 'nav.dashboard', path: '/dashboard', icon: LayoutDashboard },
     { labelKey: 'nav.properties', path: '/properties', icon: Building2 },
     { labelKey: 'nav.units', path: '/units', icon: DoorOpen },
-    { labelKey: 'nav.tenants', path: '/tenants', icon: Users },
-    { labelKey: 'nav.leases', path: '/leases', icon: FileText },
+    { labelKey: 'nav.occupants', path: '/occupants', icon: Users },
+    { labelKey: 'nav.agreements', path: '/agreements', icon: FileText },
+    { labelKey: 'nav.reservations', path: '/reservations', icon: CalendarIcon },
     { labelKey: 'nav.billing', path: '/billing', icon: Receipt },
     { labelKey: 'nav.payments', path: '/payments', icon: Wallet },
     { labelKey: 'nav.utilities', path: '/utilities', icon: Zap },
@@ -25,8 +26,8 @@ const NAV_ITEMS = {
     { labelKey: 'nav.dashboard', path: '/dashboard', icon: LayoutDashboard },
     { labelKey: 'nav.properties', path: '/properties', icon: Building2 },
     { labelKey: 'nav.units', path: '/units', icon: DoorOpen },
-    { labelKey: 'nav.tenants', path: '/tenants', icon: Users },
-    { labelKey: 'nav.leases', path: '/leases', icon: FileText },
+    { labelKey: 'nav.occupants', path: '/occupants', icon: Users },
+    { labelKey: 'nav.agreements', path: '/agreements', icon: FileText },
     { labelKey: 'nav.billing', path: '/billing', icon: Receipt },
     { labelKey: 'nav.utilities', path: '/utilities', icon: Zap },
     { labelKey: 'nav.maintenance', path: '/maintenance', icon: Wrench },

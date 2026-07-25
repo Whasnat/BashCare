@@ -126,7 +126,7 @@ export default function Dashboard() {
         <div className="card">
           <h3 className="section-title">{t('dashboard.quickActions')}</h3>
           <div className="flex-col gap-3">
-            <button className="btn btn-secondary justify-start py-3" onClick={() => navigate('/tenants')}>
+            <button className="btn btn-secondary justify-start py-3" onClick={() => navigate('/occupants')}>
               <Users size={16} className="text-accent" /> {t('dashboard.registerNewTenant')}
             </button>
             <button className="btn btn-secondary justify-start py-3" onClick={() => navigate('/billing')}>

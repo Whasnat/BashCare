@@ -288,7 +288,7 @@ export default function Billing() {
 
   const fetchLeases = useCallback(async () => {
     try {
-      const { data } = await api.get('/leases?is_active=true');
+      const { data } = await api.get('/agreements?is_active=true');
       setLeases(data.data || data); // handle paginated and non-paginated responses
     } catch {
       toast.error('Failed to load leases');

@@ -17,11 +17,11 @@ export default async function adminRoutes(fastify) {
       `SELECT lp.*,
               COUNT(DISTINCT p.id) AS property_count,
               COUNT(DISTINCT u.id) AS unit_count,
-              COUNT(DISTINCT l.id) AS active_leases
+              COUNT(DISTINCT l.id) AS active_agreements
        FROM landlord_profiles lp
        LEFT JOIN properties p ON p.landlord_id = lp.id
        LEFT JOIN units u ON u.landlord_id = lp.id
-       LEFT JOIN leases l ON l.landlord_id = lp.id AND l.is_active = TRUE
+       LEFT JOIN agreements l ON l.landlord_id = lp.id AND l.is_active = TRUE
        GROUP BY lp.id
        ORDER BY lp.created_at DESC`
     );
@@ -133,11 +133,11 @@ export default async function adminRoutes(fastify) {
 
   // ─── Platform overview stats ────────────────────────────────────────
   fastify.get('/stats', adminOnly, async () => {
-    const [landlords, properties, units, leases, invoices, userCount, outstanding, trendData] = await Promise.all([
+    const [landlords, properties, units, agreements, invoices, userCount, outstanding, trendData] = await Promise.all([
       queryAdmin(`SELECT COUNT(*) FROM landlord_profiles`),
       queryAdmin(`SELECT COUNT(*) FROM properties`),
       queryAdmin(`SELECT COUNT(*) FROM units`),
-      queryAdmin(`SELECT COUNT(*) FROM leases WHERE is_active = TRUE`),
+      queryAdmin(`SELECT COUNT(*) FROM agreements WHERE is_active = TRUE`),
       queryAdmin(`SELECT SUM(amount_paid) AS total_collected FROM ledger_invoices WHERE status = 'PAID'`),
       queryAdmin(`SELECT COUNT(*) FROM users`),
       queryAdmin(`
@@ -159,14 +159,14 @@ export default async function adminRoutes(fastify) {
     ]);
 
     const totalUnits = parseInt(units.rows[0].count);
-    const activeLeases = parseInt(leases.rows[0].count);
+    const activeLeases = parseInt(agreements.rows[0].count);
     const occupancyRate = totalUnits > 0 ? ((activeLeases / totalUnits) * 100).toFixed(1) : 0;
 
     return {
       total_landlords: parseInt(landlords.rows[0].count),
       total_properties: parseInt(properties.rows[0].count),
       total_units: totalUnits,
-      active_leases: activeLeases,
+      active_agreements: activeLeases,
       occupancy_rate: occupancyRate,
       total_collected: invoices.rows[0].total_collected || 0,
       total_outstanding: outstanding.rows[0].total_outstanding || 0,

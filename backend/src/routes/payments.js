@@ -44,17 +44,17 @@ export default async function paymentsRoutes(fastify) {
     const { invoice_id, amount, notes } = req.body;
     if (!invoice_id || !amount) return reply.code(400).send({ error: 'invoice_id and amount required' });
 
-    const invoiceRes = await queryWithRLS(req.user.landlord_id, `SELECT tenant_id FROM ledger_invoices WHERE id = $1`, [invoice_id]);
+    const invoiceRes = await queryWithRLS(req.user.landlord_id, `SELECT occupant_id FROM ledger_invoices WHERE id = $1`, [invoice_id]);
     if (!invoiceRes.rows[0]) return reply.code(404).send({ error: 'Invoice not found' });
-    const tenant_id = invoiceRes.rows[0].tenant_id;
+    const occupant_id = invoiceRes.rows[0].occupant_id;
 
     const paymentResult = await queryWithRLS(
       req.user.landlord_id,
       `INSERT INTO payment_transactions
-         (landlord_id, invoice_id, tenant_id, amount, method, status, verified_by, verified_at, notes)
+         (landlord_id, invoice_id, occupant_id, amount, method, status, verified_by, verified_at, notes)
        VALUES ($1, $2, $3, $4, 'CASH', 'VERIFIED', $5, NOW(), $6)
        RETURNING *`,
-      [req.user.landlord_id, invoice_id, tenant_id, amount, req.user.id, notes]
+      [req.user.landlord_id, invoice_id, occupant_id, amount, req.user.id, notes]
     );
 
     const newStatus = await allocatePayment(req.user.landlord_id, invoice_id, amount);
@@ -80,15 +80,15 @@ export default async function paymentsRoutes(fastify) {
     const validMethods = ['BKASH', 'NAGAD', 'ROCKET', 'BANK_TRANSFER', 'MFS_PERSONAL', 'CASH'];
     const resolvedMethod = validMethods.includes(method) ? method : 'MFS_PERSONAL';
 
-    const invoiceRes = await queryWithRLS(req.user.landlord_id, `SELECT tenant_id FROM ledger_invoices WHERE id = $1`, [invoice_id]);
+    const invoiceRes = await queryWithRLS(req.user.landlord_id, `SELECT occupant_id FROM ledger_invoices WHERE id = $1`, [invoice_id]);
     if (!invoiceRes.rows[0]) return reply.code(404).send({ error: 'Invoice not found' });
 
     const paymentResult = await queryWithRLS(
       req.user.landlord_id,
       `INSERT INTO payment_transactions
-         (landlord_id, invoice_id, tenant_id, amount, method, trx_id, status, notes)
+         (landlord_id, invoice_id, occupant_id, amount, method, trx_id, status, notes)
        VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7) RETURNING *`,
-      [req.user.landlord_id, invoice_id, invoiceRes.rows[0].tenant_id, amount, resolvedMethod, trx_id, notes || null]
+      [req.user.landlord_id, invoice_id, invoiceRes.rows[0].occupant_id, amount, resolvedMethod, trx_id, notes || null]
     );
 
     // Update invoice status to PENDING_VERIFICATION
@@ -150,7 +150,7 @@ export default async function paymentsRoutes(fastify) {
       
       // Notify Tenant
       notificationService.sendNotification(
-        payment.tenant_id,
+        payment.occupant_id,
         'PAYMENT_CONFIRMED',
         'Payment Approved',
         `Your payment of ৳${payment.amount} has been approved and applied to your invoice.`,
@@ -178,7 +178,7 @@ export default async function paymentsRoutes(fastify) {
       
       // Notify Tenant
       notificationService.sendNotification(
-        payment.tenant_id,
+        payment.occupant_id,
         'PAYMENT_REJECTED',
         'Payment Rejected',
         `Your payment submission of ৳${payment.amount} was rejected. Please contact your landlord or try again.`,
@@ -205,9 +205,9 @@ export default async function paymentsRoutes(fastify) {
       `SELECT pt.*, tp.full_name AS tenant_name, tp.phone_number AS tenant_phone,
               li.billing_month, u.unit_number, p.name AS property_name
        FROM payment_transactions pt
-       JOIN tenant_profiles tp ON tp.id = pt.tenant_id
+       JOIN occupant_profiles tp ON tp.id = pt.occupant_id
        JOIN ledger_invoices li ON li.id = pt.invoice_id
-       JOIN leases l ON l.id = li.lease_id
+       JOIN agreements l ON l.id = li.agreement_id
        JOIN units u ON u.id = l.unit_id
        JOIN properties p ON p.id = u.property_id
        WHERE pt.status = 'PENDING'
@@ -225,9 +225,9 @@ export default async function paymentsRoutes(fastify) {
               COUNT(*) OVER() AS total_count,
               li.billing_month, u.unit_number, p.name AS property_name
        FROM payment_transactions pt
-       JOIN tenant_profiles tp ON tp.id = pt.tenant_id
+       JOIN occupant_profiles tp ON tp.id = pt.occupant_id
        JOIN ledger_invoices li ON li.id = pt.invoice_id
-       JOIN leases l ON l.id = li.lease_id
+       JOIN agreements l ON l.id = li.agreement_id
        JOIN units u ON u.id = l.unit_id
        JOIN properties p ON p.id = u.property_id
        WHERE 1=1`;

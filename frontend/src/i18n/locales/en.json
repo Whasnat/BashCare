@@ -41,8 +41,9 @@
     "dashboard": "Dashboard",
     "properties": "Properties",
     "units": "Units",
-    "tenants": "Tenants",
-    "leases": "Leases",
+    "occupants": "Occupants",
+    "agreements": "Agreements",
+    "reservations": "Reservations",
     "billing": "Billing & Ledger",
     "payments": "Payments",
     "utilities": "Utilities",
@@ -113,7 +114,7 @@
     "phUnitNumber": "e.g. A-101",
     "phFloor": "e.g. 3rd"
   },
-  "tenants": {
+  "occupants": {
     "title": "Tenants",
     "subtitle": "Manage your tenants and their portal access",
     "addTenant": "Add Tenant",
@@ -150,7 +151,7 @@
     "phMinChars": "Min. 8 characters",
     "phReEnterPassword": "Re-enter password"
   },
-  "leases": {
+  "agreements": {
     "title": "Leases",
     "subtitle": "Create and manage rental contracts",
     "createLease": "Create Lease",

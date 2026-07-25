@@ -45,7 +45,7 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
     setSaving(true);
     try {
       if (isEdit) {
-        const { data } = await api.patch(`/tenants/${tenant.id}`, {
+        const { data } = await api.patch(`/occupants/${tenant.id}`, {
           full_name: form.full_name,
           phone_number: form.phone_number,
           email: form.email,
@@ -55,7 +55,7 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
         onSaved(data, 'edit');
         toast.success('Tenant profile updated');
       } else {
-        const { data } = await api.post('/tenants', form);
+        const { data } = await api.post('/occupants', form);
         onSaved(data, 'add');
         toast.success('Tenant registered');
       }
@@ -73,7 +73,7 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
     <div className="modal-overlay">
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">{isEdit ? t('tenants.editTenant') : t('tenants.addTenant')}</h2>
+          <h2 className="modal-title">{isEdit ? t('occupants.editTenant') : t('occupants.addTenant')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={handleClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -86,24 +86,24 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Full Name *</label>
-                  <input className="form-input" placeholder={t('tenants.phFullName')} value={form.full_name} onChange={setF('full_name')} required />
+                  <input className="form-input" placeholder={t('occupants.phFullName')} value={form.full_name} onChange={setF('full_name')} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone Number *</label>
-                  <input className="form-input" placeholder={t('tenants.phPhone')} value={form.phone_number} onChange={setF('phone_number')} required />
+                  <input className="form-input" placeholder={t('occupants.phPhone')} value={form.phone_number} onChange={setF('phone_number')} required />
                 </div>
               </div>
               <div className="form-grid" style={{ marginTop: 12 }}>
                 <div className="form-group">
                   <label className="form-label">Email Address</label>
-                  <input type="email" className="form-input" placeholder={t('tenants.phEmail')} value={form.email} onChange={setF('email')} />
+                  <input type="email" className="form-input" placeholder={t('occupants.phEmail')} value={form.email} onChange={setF('email')} />
                 </div>
                 {!isEdit && (
                   <div className="form-group">
                     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Shield size={12} /> National ID (NID) — Encrypted at rest
                     </label>
-                    <input className="form-input" placeholder={t('tenants.phNid')} value={form.national_id} onChange={setF('national_id')} />
+                    <input className="form-input" placeholder={t('occupants.phNid')} value={form.national_id} onChange={setF('national_id')} />
                   </div>
                 )}
               </div>
@@ -116,11 +116,11 @@ function TenantModal({ open, onClose, tenant, onSaved }) {
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Contact Name</label>
-                  <input className="form-input" placeholder={t('tenants.phEmergencyContact')} value={form.emergency_contact} onChange={setF('emergency_contact')} />
+                  <input className="form-input" placeholder={t('occupants.phEmergencyContact')} value={form.emergency_contact} onChange={setF('emergency_contact')} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Contact Phone</label>
-                  <input className="form-input" placeholder={t('tenants.phPhone')} value={form.emergency_phone} onChange={setF('emergency_phone')} />
+                  <input className="form-input" placeholder={t('occupants.phPhone')} value={form.emergency_phone} onChange={setF('emergency_phone')} />
                 </div>
               </div>
             </div>
@@ -158,11 +158,11 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
     setSaving(true);
     try {
       if (form.mode === 'invite') {
-        const { data } = await api.post(`/tenants/${tenant.id}/invite`, { email: form.email });
+        const { data } = await api.post(`/occupants/${tenant.id}/invite`, { email: form.email });
         setForm(f => ({ ...f, inviteLink: data.setupLink }));
         toast.success(`Invite link generated for ${tenant.full_name}`);
       } else {
-        await api.post(`/tenants/${tenant.id}/create-login`, {
+        await api.post(`/occupants/${tenant.id}/create-login`, {
           email: form.email,
           password: form.password,
         });
@@ -183,7 +183,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
       <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h2 className="modal-title">{t('tenants.setPortalLogin')}</h2>
+            <h2 className="modal-title">{t('occupants.setPortalLogin')}</h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
               for <strong style={{ color: 'var(--text-primary)' }}>{tenant?.full_name}</strong>
             </p>
@@ -240,7 +240,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
               <div className="form-group">
                 <label className="form-label">Login Email *</label>
                 <input
-                  type="email" className="form-input" placeholder={t('tenants.phEmail')}
+                  type="email" className="form-input" placeholder={t('occupants.phEmail')}
                   value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
                   required
                 />
@@ -253,7 +253,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
                     <div style={{ position: 'relative' }}>
                       <input
                         type={show ? 'text' : 'password'} className="form-input"
-                        placeholder={t('tenants.phMinChars')} minLength={8}
+                        placeholder={t('occupants.phMinChars')} minLength={8}
                         value={form.password} onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
                         required style={{ paddingRight: 80 }}
                       />
@@ -267,7 +267,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
                     <label className="form-label">Confirm Password *</label>
                     <input
                       type={show ? 'text' : 'password'} className="form-input"
-                      placeholder={t('tenants.phReEnterPassword')} minLength={8}
+                      placeholder={t('occupants.phReEnterPassword')} minLength={8}
                       value={form.confirm} onChange={(e) => setForm(f => ({ ...f, confirm: e.target.value }))}
                       required
                     />
@@ -279,7 +279,7 @@ function SetLoginModal({ open, onClose, tenant, onCreated }) {
               <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</button>
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 {saving ? <span className="spinner" /> : null}
-                {form.mode === 'invite' ? <><Mail size={14} /> {t('tenants.generateLink')}</> : <><KeyRound size={14} /> {t('tenants.createLogin')}</>}
+                {form.mode === 'invite' ? <><Mail size={14} /> {t('occupants.generateLink')}</> : <><KeyRound size={14} /> {t('occupants.createLogin')}</>}
               </button>
             </div>
           </form>
@@ -296,7 +296,7 @@ function DeleteModal({ open, onClose, tenant, onDeleted }) {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await api.delete(`/tenants/${tenant.id}`);
+      await api.delete(`/occupants/${tenant.id}`);
       toast.success(`${tenant.full_name} deleted`);
       onDeleted(tenant.id);
       onClose();
@@ -311,7 +311,7 @@ function DeleteModal({ open, onClose, tenant, onDeleted }) {
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title" style={{ color: 'var(--accent-rose)' }}>{t('tenants.deleteTenantConfirm')}</h2>
+          <h2 className="modal-title" style={{ color: 'var(--accent-rose)' }}>{t('occupants.deleteTenantConfirm')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>
@@ -360,7 +360,7 @@ export default function Tenants() {
   const { data: response, isLoading: loading, refetch } = useQuery({
     queryKey: ['tenants', page, debouncedSearch, filterStatus],
     queryFn: async () => {
-      const { data } = await api.get('/tenants', {
+      const { data } = await api.get('/occupants', {
         params: { page, limit, search: debouncedSearch, status: filterStatus }
       });
       return data;
@@ -387,11 +387,11 @@ export default function Tenants() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">{t('tenants.title')}</h1>
-          <p className="page-subtitle">{t('tenants.subtitle')}</p>
+          <h1 className="page-title">{t('occupants.title')}</h1>
+          <p className="page-subtitle">{t('occupants.subtitle')}</p>
         </div>
         <button className="btn btn-primary" id="add-tenant-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
-          <Plus size={16} /> {t('tenants.addTenant')}
+          <Plus size={16} /> {t('occupants.addTenant')}
         </button>
       </div>
 
@@ -400,21 +400,21 @@ export default function Tenants() {
         <div className="stat-card teal">
           <div className="stat-content">
             <div className="stat-value">{tenants.length}</div>
-            <div className="stat-label">{t('tenants.totalTenants')}</div>
+            <div className="stat-label">{t('occupants.totalTenants')}</div>
           </div>
           <div className="stat-icon teal"><Users size={22} /></div>
         </div>
         <div className="stat-card emerald">
           <div className="stat-content">
             <div className="stat-value">{activeTenants}</div>
-            <div className="stat-label">{t('tenants.withLease')}</div>
+            <div className="stat-label">{t('occupants.withLease')}</div>
           </div>
           <div className="stat-icon emerald"><Users size={22} /></div>
         </div>
         <div className="stat-card purple">
           <div className="stat-content">
             <div className="stat-value">{withLogin} / {tenants.length}</div>
-            <div className="stat-label">{t('tenants.withPortal')}</div>
+            <div className="stat-label">{t('occupants.withPortal')}</div>
           </div>
           <div className="stat-icon purple"><KeyRound size={22} /></div>
         </div>
@@ -422,19 +422,19 @@ export default function Tenants() {
 
       <div className="table-container">
         <div className="table-header">
-          <h3 className="table-title">{t('tenants.title')}</h3>
+          <h3 className="table-title">{t('occupants.title')}</h3>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div className="tabs">
               {['all', 'active', 'inactive'].map((s) => (
                 <button key={s} className={`tab-btn ${filterStatus === s ? 'active' : ''}`} onClick={() => setFilterStatus(s)}>
-                  {s === 'all' ? t('common.all') : s === 'active' ? t('tenants.activeLease') : t('tenants.noLease')}
+                  {s === 'all' ? t('common.all') : s === 'active' ? t('occupants.activeLease') : t('occupants.noLease')}
                 </button>
               ))}
             </div>
             <div className="search-bar">
               <Search size={15} color="var(--text-muted)" />
               <input
-                placeholder={t('tenants.searchPlaceholder')}
+                placeholder={t('occupants.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -445,13 +445,13 @@ export default function Tenants() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>{t('tenants.fullName')}</th>
-              <th>{t('tenants.phone')}</th>
-              <th>{t('tenants.email')}</th>
-              <th>{t('tenants.unitAssigned')}</th>
-              <th>{t('tenants.rent')} ({t('common.currency')})</th>
-              <th>{t('tenants.portalAccess')}</th>
-              <th>{t('tenants.leaseStatus')}</th>
+              <th>{t('occupants.fullName')}</th>
+              <th>{t('occupants.phone')}</th>
+              <th>{t('occupants.email')}</th>
+              <th>{t('occupants.unitAssigned')}</th>
+              <th>{t('occupants.rent')} ({t('common.currency')})</th>
+              <th>{t('occupants.portalAccess')}</th>
+              <th>{t('occupants.leaseStatus')}</th>
               <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>
           </thead>
@@ -466,8 +466,8 @@ export default function Tenants() {
               <tr><td colSpan={8}>
                 <div className="empty-state">
                   <Users size={36} className="empty-icon" />
-                  <div className="empty-title">{t('tenants.noTenants')}</div>
-                  <div className="empty-desc">{t('tenants.noTenantsDesc')}</div>
+                  <div className="empty-title">{t('occupants.noTenants')}</div>
+                  <div className="empty-desc">{t('occupants.noTenantsDesc')}</div>
                 </div>
               </td></tr>
             ) : tenants.map((t_item) => (

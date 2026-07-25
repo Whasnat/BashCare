@@ -6,14 +6,14 @@ import toast from 'react-hot-toast';
 
 function PropertyModal({ open, onClose, property, onSaved }) {
   const isEdit = !!property;
-  const [form, setForm] = useState({ name: '', address: '' });
+  const [form, setForm] = useState({ name: '', address: '', property_type: 'RESIDENTIAL' });
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (property) setForm({ name: property.name, address: property.address });
-    else setForm({ name: '', address: '' });
+    if (property) setForm({ name: property.name, address: property.address, property_type: property.property_type || 'RESIDENTIAL' });
+    else setForm({ name: '', address: '', property_type: 'RESIDENTIAL' });
     setIsDirty(false);
   }, [property, open]);
 
@@ -62,6 +62,22 @@ function PropertyModal({ open, onClose, property, onSaved }) {
         </div>
         <form onSubmit={handleSubmit}>
           <div className="flex-col gap-4">
+            <div className="form-group">
+              <label className="form-label">Property Type *</label>
+              <select
+                className="form-input"
+                value={form.property_type}
+                onChange={handleChange('property_type')}
+                required
+              >
+                <option value="RESIDENTIAL">Residential</option>
+                <option value="HOTEL">Hotel</option>
+                <option value="HOSPITAL">Hospital</option>
+                <option value="COMMERCIAL">Commercial Plaza</option>
+                <option value="COWORKING">Co-working Space</option>
+                <option value="WAREHOUSE">Warehouse</option>
+              </select>
+            </div>
             <div className="form-group">
               <label className="form-label">{t('properties.propertyName')} *</label>
               <input
@@ -230,6 +246,7 @@ export default function Properties() {
           <thead>
             <tr>
               <th>{t('properties.propertyName')}</th>
+              <th>Type</th>
               <th>{t('properties.address')}</th>
               <th>{t('properties.totalUnits')}</th>
               <th>{t('units.occupied')}</th>
@@ -274,6 +291,7 @@ export default function Properties() {
                     </div>
                   </div>
                 </td>
+                <td><span className="badge badge-outline">{p.property_type || 'RESIDENTIAL'}</span></td>
                 <td style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>{p.address}</td>
                 <td><strong>{p.total_units || 0}</strong></td>
                 <td><span className="badge badge-occupied">{p.occupied_units || 0}</span></td>

@@ -14,7 +14,7 @@ export default async function maintenanceRoutes(fastify) {
              t.full_name AS tenant_name, t.phone_number AS tenant_phone,
              u.unit_number, p.name AS property_name
       FROM maintenance_requests m
-      JOIN tenant_profiles t ON t.id = m.tenant_id
+      JOIN occupant_profiles t ON t.id = m.occupant_id
       JOIN units u ON u.id = m.unit_id
       JOIN properties p ON p.id = m.property_id
       WHERE 1=1
@@ -26,7 +26,7 @@ export default async function maintenanceRoutes(fastify) {
       if (!userRes.rows[0]) return reply.code(404).send({ error: 'Tenant not found' });
       const { linked_entity_id: tenantId, landlord_id: landlordId } = userRes.rows[0];
       
-      query += ` AND m.tenant_id = $1 ORDER BY m.created_at DESC`;
+      query += ` AND m.occupant_id = $1 ORDER BY m.created_at DESC`;
       const result = await queryWithRLS(landlordId, query, [tenantId]);
       return result.rows;
     } else {
@@ -49,9 +49,9 @@ export default async function maintenanceRoutes(fastify) {
     // Find the active lease to get property_id and unit_id
     const leaseRes = await queryAdmin(
       `SELECT l.unit_id, u.property_id 
-       FROM leases l
+       FROM agreements l
        JOIN units u ON u.id = l.unit_id
-       WHERE l.tenant_id = $1 AND l.is_active = TRUE`,
+       WHERE l.occupant_id = $1 AND l.is_active = TRUE`,
       [tenantId]
     );
 
@@ -61,7 +61,7 @@ export default async function maintenanceRoutes(fastify) {
     const result = await queryWithRLS(
       landlordId,
       `INSERT INTO maintenance_requests 
-        (landlord_id, tenant_id, property_id, unit_id, issue_type, priority, title, description, photo_url)
+        (landlord_id, occupant_id, property_id, unit_id, issue_type, priority, title, description, photo_url)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [landlordId, tenantId, property_id, unit_id, issue_type, priority || 'LOW', title, description, photo_url]
     );
@@ -89,15 +89,15 @@ export default async function maintenanceRoutes(fastify) {
     const reqId = req.params.id;
     const landlordId = req.user.landlord_id;
 
-    // Get the request to ensure it exists and get tenant_id/billed_invoice_id
+    // Get the request to ensure it exists and get occupant_id/billed_invoice_id
     const currentReq = await queryWithRLS(
       landlordId,
-      `SELECT tenant_id, billed_invoice_id, cost FROM maintenance_requests WHERE id = $1`,
+      `SELECT occupant_id, billed_invoice_id, cost FROM maintenance_requests WHERE id = $1`,
       [reqId]
     );
 
     if (!currentReq.rows[0]) return reply.code(404).send({ error: 'Request not found' });
-    const { tenant_id, billed_invoice_id } = currentReq.rows[0];
+    const { occupant_id, billed_invoice_id } = currentReq.rows[0];
 
     // Build dynamic update query
     let updates = [];
@@ -122,11 +122,11 @@ export default async function maintenanceRoutes(fastify) {
           landlordId,
           `SELECT i.id 
            FROM ledger_invoices i
-           JOIN leases l ON l.id = i.lease_id
-           WHERE l.tenant_id = $1 AND l.is_active = TRUE AND i.status = 'UNPAID'
+           JOIN agreements l ON l.id = i.agreement_id
+           WHERE l.occupant_id = $1 AND l.is_active = TRUE AND i.status = 'UNPAID'
            ORDER BY i.due_date ASC
            LIMIT 1`,
-          [tenant_id]
+          [occupant_id]
         );
         
         if (invoiceRes.rows[0]) {

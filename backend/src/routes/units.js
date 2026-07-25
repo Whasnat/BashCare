@@ -10,8 +10,8 @@ export default async function unitsRoutes(fastify) {
                         l.base_rent AS current_rent
                  FROM units u
                  JOIN properties p ON p.id = u.property_id
-                 LEFT JOIN leases l ON l.unit_id = u.id AND l.is_active = TRUE
-                 LEFT JOIN tenant_profiles tp ON tp.id = l.tenant_id
+                 LEFT JOIN agreements l ON l.unit_id = u.id AND l.is_active = TRUE
+                 LEFT JOIN occupant_profiles tp ON tp.id = l.occupant_id
                  WHERE 1=1`;
     const params = [];
     if (property_id) { params.push(property_id); query += ` AND u.property_id = $${params.length}`; }
@@ -26,11 +26,11 @@ export default async function unitsRoutes(fastify) {
       req.user.landlord_id,
       `SELECT u.*, p.name AS property_name,
               tp.full_name AS current_tenant_name, tp.phone_number AS tenant_phone,
-              l.id AS lease_id, l.base_rent, l.start_date, l.end_date, l.is_active
+              l.id AS agreement_id, l.base_rent, l.start_date, l.end_date, l.is_active
        FROM units u
        JOIN properties p ON p.id = u.property_id
-       LEFT JOIN leases l ON l.unit_id = u.id AND l.is_active = TRUE
-       LEFT JOIN tenant_profiles tp ON tp.id = l.tenant_id
+       LEFT JOIN agreements l ON l.unit_id = u.id AND l.is_active = TRUE
+       LEFT JOIN occupant_profiles tp ON tp.id = l.occupant_id
        WHERE u.id = $1`,
       [req.params.id]
     );

@@ -37,19 +37,19 @@ export default async function webhooksRoutes(fastify) {
     try {
       const invoiceId = merchantInvoiceNumber;
       const invoiceRes = await queryAdmin(
-        `SELECT landlord_id, tenant_id FROM ledger_invoices WHERE id = $1`,
+        `SELECT landlord_id, occupant_id FROM ledger_invoices WHERE id = $1`,
         [invoiceId]
       );
       if (!invoiceRes.rows[0]) {
         return reply.code(404).send({ error: 'Invoice not found' });
       }
-      const { landlord_id, tenant_id } = invoiceRes.rows[0];
+      const { landlord_id, occupant_id } = invoiceRes.rows[0];
 
       await queryWithRLS(landlord_id,
         `INSERT INTO payment_transactions
-           (landlord_id, invoice_id, tenant_id, amount, method, trx_id, gateway_response, status, verified_at)
+           (landlord_id, invoice_id, occupant_id, amount, method, trx_id, gateway_response, status, verified_at)
          VALUES ($1, $2, $3, $4, 'MFS_MERCHANT', $5, $6, 'VERIFIED', NOW())`,
-        [landlord_id, invoiceId, tenant_id, amount, trxID, JSON.stringify(req.body)]
+        [landlord_id, invoiceId, occupant_id, amount, trxID, JSON.stringify(req.body)]
       );
 
       await queryWithRLS(landlord_id, `

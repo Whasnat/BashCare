@@ -305,7 +305,7 @@ export default function Units() {
               <th>{t('units.floor')}</th>
               <th>{t('units.bedrooms')}</th>
               <th>{t('units.currentTenant')}</th>
-              <th>{t('tenants.rent')} ({t('common.currency')})</th>
+              <th>{t('occupants.rent')} ({t('common.currency')})</th>
               <th>{t('common.status')}</th>
               <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>

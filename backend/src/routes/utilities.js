@@ -22,16 +22,16 @@ export default async function utilitiesRoutes(fastify) {
   // Log a meter reading (DB trigger auto-calculates delta and invoice charge)
   // Accepts both /log and /meter-log for compatibility
   async function handleMeterLog(req, reply) {
-    const { unit_id, lease_id, meter_type, meter_reading, reading_date } = req.body;
-    if (!unit_id || !lease_id || !meter_reading) {
-      return reply.code(400).send({ error: 'unit_id, lease_id, and meter_reading are required' });
+    const { unit_id, agreement_id, meter_type, meter_reading, reading_date } = req.body;
+    if (!unit_id || !agreement_id || !meter_reading) {
+      return reply.code(400).send({ error: 'unit_id, agreement_id, and meter_reading are required' });
     }
     const result = await queryWithRLS(
       req.user.landlord_id,
       `INSERT INTO utility_meter_logs
-         (landlord_id, unit_id, lease_id, meter_type, meter_reading, reading_date, logged_by)
+         (landlord_id, unit_id, agreement_id, meter_type, meter_reading, reading_date, logged_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [req.user.landlord_id, unit_id, lease_id, meter_type || 'ELECTRICITY', meter_reading, reading_date || new Date().toISOString().split('T')[0], req.user.id]
+      [req.user.landlord_id, unit_id, agreement_id, meter_type || 'ELECTRICITY', meter_reading, reading_date || new Date().toISOString().split('T')[0], req.user.id]
     );
     return reply.code(201).send(result.rows[0]);
   }

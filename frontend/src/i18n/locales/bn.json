@@ -41,8 +41,8 @@
     "dashboard": "ড্যাশবোর্ড",
     "properties": "সম্পত্তি",
     "units": "ইউনিট",
-    "tenants": "ভাড়াটিয়া",
-    "leases": "চুক্তি",
+    "occupants": "ভাড়াটিয়া",
+    "agreements": "চুক্তি",
     "billing": "বিলিং ও লেজার",
     "payments": "পেমেন্ট",
     "utilities": "ইউটিলিটি",
@@ -111,7 +111,7 @@
     "phUnitNumber": "যেমন: এ-১০১",
     "phFloor": "যেমন: ৩য়"
   },
-  "tenants": {
+  "occupants": {
     "title": "ভাড়াটিয়া",
     "subtitle": "আপনার ভাড়াটিয়া ও তাদের পোর্টাল অ্যাক্সেস পরিচালনা করুন",
     "addTenant": "ভাড়াটিয়া যোগ করুন",
@@ -146,7 +146,7 @@
     "phMinChars": "কমপক্ষে ৮টি অক্ষর",
     "phReEnterPassword": "পাসওয়ার্ড পুনরায় দিন"
   },
-  "leases": {
+  "agreements": {
     "title": "চুক্তি",
     "subtitle": "ভাড়া চুক্তি তৈরি ও পরিচালনা করুন",
     "createLease": "চুক্তি তৈরি করুন",

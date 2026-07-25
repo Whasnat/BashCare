@@ -30,8 +30,9 @@ const SetupAccount = lazy(() => import('./pages/auth/SetupAccount'));
 const Dashboard = lazy(() => import('./pages/landlord/Dashboard'));
 const Properties = lazy(() => import('./pages/landlord/Properties'));
 const Units = lazy(() => import('./pages/landlord/Units'));
-const Tenants = lazy(() => import('./pages/landlord/Tenants'));
-const Leases = lazy(() => import('./pages/landlord/Leases'));
+const Occupants = lazy(() => import('./pages/landlord/Occupants'));
+const Agreements = lazy(() => import('./pages/landlord/Agreements'));
+const ReservationCalendar = lazy(() => import('./pages/landlord/ReservationCalendar'));
 const Billing = lazy(() => import('./pages/landlord/Billing'));
 const Payments = lazy(() => import('./pages/landlord/Payments'));
 const Settings = lazy(() => import('./pages/landlord/Settings'));
@@ -189,8 +190,9 @@ function App() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="properties" element={<Properties />} />
                 <Route path="units" element={<Units />} />
-                <Route path="tenants" element={<Tenants />} />
-                <Route path="leases" element={<Leases />} />
+                <Route path="occupants" element={<Occupants />} />
+                <Route path="agreements" element={<Agreements />} />
+                <Route path="reservations" element={<ReservationCalendar />} />
                 <Route path="billing" element={<Billing />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="utilities" element={<Utilities />} />

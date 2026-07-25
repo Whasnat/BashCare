@@ -5,7 +5,7 @@ export default async function invoicesRoutes(fastify) {
   const auth = { preHandler: [fastify.authenticate] };
 
   fastify.get('/', auth, async (req) => {
-    const { status, tenant_id, month, search = '', page = 1, limit = 50 } = req.query;
+    const { status, occupant_id, month, search = '', page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
 
     let query = `SELECT i.*, ict.total_calculated_due, ict.balance_remaining, ict.total_adjustments,
@@ -14,14 +14,14 @@ export default async function invoicesRoutes(fastify) {
                         u.unit_number, p.name AS property_name
                  FROM ledger_invoices i
                  JOIN invoice_calculated_totals ict ON ict.id = i.id
-                 JOIN tenant_profiles tp ON tp.id = i.tenant_id
-                 JOIN leases l ON l.id = i.lease_id
+                 JOIN occupant_profiles tp ON tp.id = i.occupant_id
+                 JOIN agreements l ON l.id = i.agreement_id
                  JOIN units u ON u.id = l.unit_id
                  JOIN properties p ON p.id = u.property_id
                  WHERE 1=1`;
     const params = [];
     if (status) { params.push(status); query += ` AND i.status = $${params.length}`; }
-    if (tenant_id) { params.push(tenant_id); query += ` AND i.tenant_id = $${params.length}`; }
+    if (occupant_id) { params.push(occupant_id); query += ` AND i.occupant_id = $${params.length}`; }
     if (month) { params.push(month); query += ` AND i.billing_month = $${params.length}`; }
     if (search) {
       params.push(`%${search}%`);
@@ -56,8 +56,8 @@ export default async function invoicesRoutes(fastify) {
                 u.unit_number, p.name AS property_name
          FROM ledger_invoices i
          JOIN invoice_calculated_totals ict ON ict.id = i.id
-         JOIN tenant_profiles tp ON tp.id = i.tenant_id
-         JOIN leases l ON l.id = i.lease_id
+         JOIN occupant_profiles tp ON tp.id = i.occupant_id
+         JOIN agreements l ON l.id = i.agreement_id
          JOIN units u ON u.id = l.unit_id
          JOIN properties p ON p.id = u.property_id
          WHERE i.id = $1`, [req.params.id]),
@@ -72,13 +72,13 @@ export default async function invoicesRoutes(fastify) {
 
   // Generate invoice for a lease for a given month
   fastify.post('/generate', auth, async (req, reply) => {
-    const { lease_id, billing_month } = req.body;
-    if (!lease_id || !billing_month) return reply.code(400).send({ error: 'lease_id and billing_month required' });
+    const { agreement_id, billing_month } = req.body;
+    if (!agreement_id || !billing_month) return reply.code(400).send({ error: 'agreement_id and billing_month required' });
 
     const leaseRes = await queryWithRLS(
       req.user.landlord_id,
-      `SELECT * FROM leases WHERE id = $1 AND is_active = TRUE`,
-      [lease_id]
+      `SELECT * FROM agreements WHERE id = $1 AND is_active = TRUE`,
+      [agreement_id]
     );
     if (!leaseRes.rows[0]) return reply.code(404).send({ error: 'Active lease not found' });
     const lease = leaseRes.rows[0];
@@ -89,16 +89,16 @@ export default async function invoicesRoutes(fastify) {
     const result = await queryWithRLS(
       req.user.landlord_id,
       `INSERT INTO ledger_invoices
-         (landlord_id, lease_id, tenant_id, billing_month, base_rent, amount_due, due_date)
+         (landlord_id, agreement_id, occupant_id, billing_month, base_rent, amount_due, due_date)
        VALUES ($1, $2, $3, $4, $5, $5, $6)
-       ON CONFLICT (lease_id, billing_month) DO NOTHING
+       ON CONFLICT (agreement_id, billing_month) DO NOTHING
        RETURNING *`,
-      [req.user.landlord_id, lease_id, lease.tenant_id, billing_month, lease.base_rent, dueDate]
+      [req.user.landlord_id, agreement_id, lease.occupant_id, billing_month, lease.base_rent, dueDate]
     );
     if (!result.rows[0]) return reply.code(409).send({ error: 'Invoice already exists for this month' });
     
     notificationService.sendNotification(
-      lease.tenant_id,
+      lease.occupant_id,
       'INVOICE_GENERATED',
       'New Invoice Generated',
       `Your invoice for ${billing_month} has been generated and is due on the 10th.`,
@@ -143,7 +143,7 @@ export default async function invoicesRoutes(fastify) {
     return reply.code(200).send(result.rows[0]);
   });
 
-  // ─── Generate invoices for ALL active leases for the current month ────
+  // ─── Generate invoices for ALL active agreements for the current month ────
   fastify.post('/generate-all', auth, async (req, reply) => {
     const now = new Date();
     const billing_month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -154,15 +154,15 @@ export default async function invoicesRoutes(fastify) {
     const result = await queryWithRLS(
       req.user.landlord_id,
       `INSERT INTO ledger_invoices
-         (landlord_id, lease_id, tenant_id, billing_month, base_rent, amount_due, due_date)
-       SELECT $1, l.id, l.tenant_id, $2, l.base_rent, l.base_rent, $3
-       FROM leases l
+         (landlord_id, agreement_id, occupant_id, billing_month, base_rent, amount_due, due_date)
+       SELECT $1, l.id, l.occupant_id, $2, l.base_rent, l.base_rent, $3
+       FROM agreements l
        WHERE l.is_active = TRUE
          AND NOT EXISTS (
            SELECT 1 FROM ledger_invoices li
-           WHERE li.lease_id = l.id AND li.billing_month = $2
+           WHERE li.agreement_id = l.id AND li.billing_month = $2
          )
-       RETURNING id, tenant_id`,
+       RETURNING id, occupant_id`,
       [req.user.landlord_id, billing_month, dueDate.toISOString().split('T')[0]]
     );
 
@@ -170,7 +170,7 @@ export default async function invoicesRoutes(fastify) {
 
     for (const row of result.rows) {
       notificationService.sendNotification(
-        row.tenant_id,
+        row.occupant_id,
         'INVOICE_GENERATED',
         'New Invoice Generated',
         `Your invoice for ${billing_month} has been generated and is due on the 10th.`,
@@ -182,7 +182,7 @@ export default async function invoicesRoutes(fastify) {
     // Count how many were skipped (already existed)
     const totalLeases = await queryWithRLS(
       req.user.landlord_id,
-      `SELECT COUNT(*) AS cnt FROM leases WHERE is_active = TRUE`
+      `SELECT COUNT(*) AS cnt FROM agreements WHERE is_active = TRUE`
     );
     const skipped = parseInt(totalLeases.rows[0].cnt) - generated;
 

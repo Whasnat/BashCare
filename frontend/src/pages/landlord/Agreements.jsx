@@ -41,7 +41,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
     }
     setSaving(true);
     try {
-      const { data } = await api.post('/leases', {
+      const { data } = await api.post('/agreements', {
         ...form,
         base_rent: parseFloat(form.base_rent),
         security_deposit: parseFloat(form.security_deposit || 0),
@@ -64,7 +64,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
     <div className="modal-overlay">
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">{t('leases.createLease')}</h2>
+          <h2 className="modal-title">{t('agreements.createLease')}</h2>
           <button className="btn btn-ghost btn-icon" onClick={handleClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -125,7 +125,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                   <input
                     type="number"
                     className="form-input"
-                    placeholder={t('leases.phBaseRent')}
+                    placeholder={t('agreements.phBaseRent')}
                     value={form.base_rent}
                     onChange={(e) => setForm({ ...form, base_rent: e.target.value })}
                     min="0"
@@ -138,7 +138,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                   <input
                     type="number"
                     className="form-input"
-                    placeholder={t('leases.phSecurityDeposit')}
+                    placeholder={t('agreements.phSecurityDeposit')}
                     value={form.security_deposit}
                     onChange={(e) => setForm({ ...form, security_deposit: e.target.value })}
                     min="0"
@@ -150,7 +150,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                   <input
                     type="number"
                     className="form-input"
-                    placeholder={t('leases.phUtilityTariff')}
+                    placeholder={t('agreements.phUtilityTariff')}
                     value={form.utility_tariff}
                     onChange={(e) => setForm({ ...form, utility_tariff: e.target.value })}
                     min="0"
@@ -190,7 +190,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                 <textarea
                   className="form-textarea"
                   rows={2}
-                  placeholder={t('leases.phNotes')}
+                  placeholder={t('agreements.phNotes')}
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 />
@@ -216,7 +216,7 @@ function TerminateModal({ open, lease, onClose, onTerminated }) {
   const handleTerminate = async () => {
     setTerminating(true);
     try {
-      await api.patch(`/leases/${lease.id}/terminate`);
+      await api.patch(`/agreements/${lease.id}/terminate`);
       toast.success('Lease terminated. Unit marked as Vacant.');
       onTerminated(lease.id);
       onClose();
@@ -250,7 +250,7 @@ function TerminateModal({ open, lease, onClose, onTerminated }) {
           <button className="btn btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
           <button className="btn btn-danger" onClick={handleTerminate} disabled={terminating}>
             {terminating ? <span className="spinner" /> : null}
-            {t('leases.terminate')}
+            {t('agreements.terminate')}
           </button>
         </div>
       </div>
@@ -284,7 +284,7 @@ export default function Leases() {
     queryKey: ['leases', page, debouncedSearch, filterActive],
     queryFn: async () => {
       const is_active = filterActive === 'all' ? undefined : filterActive === 'active';
-      const { data } = await api.get('/leases', {
+      const { data } = await api.get('/agreements', {
         params: { page, limit, search: debouncedSearch, is_active }
       });
       return data;
@@ -298,7 +298,7 @@ export default function Leases() {
   // Fetch dropdown data for create form once
   useEffect(() => {
     api.get('/units').then(r => setUnits(r.data?.data || r.data)).catch(() => {});
-    api.get('/tenants').then(r => setTenants(r.data?.data || r.data)).catch(() => {});
+    api.get('/occupants').then(r => setTenants(r.data?.data || r.data)).catch(() => {});
   }, []);
 
   const handleLeaseCreated = (newLease) => {
@@ -329,11 +329,11 @@ export default function Leases() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">{t('leases.title')}</h1>
-          <p className="page-subtitle">{t('leases.subtitle')}</p>
+          <h1 className="page-title">{t('agreements.title')}</h1>
+          <p className="page-subtitle">{t('agreements.subtitle')}</p>
         </div>
         <button className="btn btn-primary" id="create-lease-btn" onClick={() => setModalOpen(true)}>
-          <Plus size={16} /> {t('leases.createLease')}
+          <Plus size={16} /> {t('agreements.createLease')}
         </button>
       </div>
 
@@ -342,14 +342,14 @@ export default function Leases() {
         <div className="stat-card teal">
           <div className="stat-content">
             <div className="stat-value">{activeCount}</div>
-            <div className="stat-label">{t('leases.activeLeases')}</div>
+            <div className="stat-label">{t('agreements.activeLeases')}</div>
           </div>
           <div className="stat-icon teal"><FileText size={22} /></div>
         </div>
         <div className="stat-card amber">
           <div className="stat-content">
             <div className="stat-value">{leases.length - activeCount}</div>
-            <div className="stat-label">{t('leases.pastLeases')}</div>
+            <div className="stat-label">{t('agreements.pastLeases')}</div>
           </div>
           <div className="stat-icon amber"><Calendar size={22} /></div>
         </div>
@@ -358,7 +358,7 @@ export default function Leases() {
             <div className="stat-value">
               ৳{leases.filter((l) => l.is_active).reduce((s, l) => s + Number(l.base_rent || 0), 0).toLocaleString()}
             </div>
-            <div className="stat-label">{t('leases.monthlyRentRoll')}</div>
+            <div className="stat-label">{t('agreements.monthlyRentRoll')}</div>
           </div>
           <div className="stat-icon emerald"><FileText size={22} /></div>
         </div>
@@ -366,19 +366,19 @@ export default function Leases() {
 
       <div className="table-container">
         <div className="table-header">
-          <h3 className="table-title">{t('leases.allLeases')}</h3>
+          <h3 className="table-title">{t('agreements.allLeases')}</h3>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div className="tabs">
               {['active', 'past', 'all'].map((s) => (
                 <button key={s} className={`tab-btn ${filterActive === s ? 'active' : ''}`} onClick={() => setFilterActive(s)}>
-                  {s === 'active' ? t('common.active') : s === 'past' ? t('leases.past') : t('common.all')}
+                  {s === 'active' ? t('common.active') : s === 'past' ? t('agreements.past') : t('common.all')}
                 </button>
               ))}
             </div>
             <div className="search-bar">
               <Search size={15} color="var(--text-muted)" />
               <input
-                placeholder={t('leases.searchPlaceholder')}
+                placeholder={t('agreements.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -389,12 +389,12 @@ export default function Leases() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>{t('leases.tenant')}</th>
-              <th>{t('leases.unit')}</th>
-              <th>{t('leases.baseRent')}</th>
-              <th>{t('leases.securityDeposit')}</th>
-              <th>{t('leases.startDate')}</th>
-              <th>{t('leases.endDate')}</th>
+              <th>{t('agreements.tenant')}</th>
+              <th>{t('agreements.unit')}</th>
+              <th>{t('agreements.baseRent')}</th>
+              <th>{t('agreements.securityDeposit')}</th>
+              <th>{t('agreements.startDate')}</th>
+              <th>{t('agreements.endDate')}</th>
               <th>{t('common.status')}</th>
               <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
             </tr>

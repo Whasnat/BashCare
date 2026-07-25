@@ -38,12 +38,12 @@ export default async function tenantsRoutes(fastify) {
 
     let query = `SELECT tp.*,
               COUNT(*) OVER() AS total_count,
-              l.id AS lease_id, l.is_active,
+              l.id AS agreement_id, l.is_active,
               u.unit_number, p.name AS property_name,
               l.base_rent,
               (SELECT COUNT(*) FROM users u2 WHERE u2.linked_entity_id = tp.id AND u2.role = 'tenant') > 0 AS has_login
-       FROM tenant_profiles tp
-       LEFT JOIN leases l ON l.tenant_id = tp.id AND l.is_active = TRUE
+       FROM occupant_profiles tp
+       LEFT JOIN agreements l ON l.occupant_id = tp.id AND l.is_active = TRUE
        LEFT JOIN units u ON u.id = l.unit_id
        LEFT JOIN properties p ON p.id = u.property_id
        WHERE 1=1`;
@@ -89,10 +89,10 @@ export default async function tenantsRoutes(fastify) {
     const result = await queryWithRLS(
       req.user.landlord_id,
       `SELECT tp.*,
-              l.id AS lease_id, l.base_rent, l.start_date, l.end_date,
+              l.id AS agreement_id, l.base_rent, l.start_date, l.end_date,
               u.unit_number, p.name AS property_name
-       FROM tenant_profiles tp
-       LEFT JOIN leases l ON l.tenant_id = tp.id AND l.is_active = TRUE
+       FROM occupant_profiles tp
+       LEFT JOIN agreements l ON l.occupant_id = tp.id AND l.is_active = TRUE
        LEFT JOIN units u ON u.id = l.unit_id
        LEFT JOIN properties p ON p.id = u.property_id
        WHERE tp.id = $1`,
@@ -113,7 +113,7 @@ export default async function tenantsRoutes(fastify) {
     const encryptedNID = encryptNID(national_id);
     const result = await queryWithRLS(
       req.user.landlord_id,
-      `INSERT INTO tenant_profiles
+      `INSERT INTO occupant_profiles
          (landlord_id, full_name, phone_number, email, encrypted_national_id, emergency_contact, emergency_phone)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [req.user.landlord_id, full_name, phone_number, email, encryptedNID, emergency_contact, emergency_phone]
@@ -136,7 +136,7 @@ export default async function tenantsRoutes(fastify) {
     const { full_name, phone_number, email, emergency_contact, emergency_phone } = req.body;
     const result = await queryWithRLS(
       req.user.landlord_id,
-      `UPDATE tenant_profiles SET
+      `UPDATE occupant_profiles SET
          full_name = COALESCE($1, full_name),
          phone_number = COALESCE($2, phone_number),
          email = COALESCE($3, email),
@@ -159,7 +159,7 @@ export default async function tenantsRoutes(fastify) {
     // Verify tenant belongs to this landlord
     const tenantRes = await queryWithRLS(
       req.user.landlord_id,
-      `SELECT id, landlord_id FROM tenant_profiles WHERE id = $1`,
+      `SELECT id, landlord_id FROM occupant_profiles WHERE id = $1`,
       [req.params.id]
     );
     if (!tenantRes.rows[0]) return reply.code(404).send({ error: 'Tenant not found' });
@@ -176,7 +176,7 @@ export default async function tenantsRoutes(fastify) {
       await queryAdmin(
         `INSERT INTO users (landlord_id, linked_entity_id, role, email, password_hash, full_name, is_active, must_change_password)
          SELECT $1, tp.id, 'tenant', $2, $3, tp.full_name, TRUE, TRUE
-         FROM tenant_profiles tp WHERE tp.id = $4`,
+         FROM occupant_profiles tp WHERE tp.id = $4`,
         [req.user.landlord_id, email, hash, req.params.id]
       );
       return reply.code(201).send({ message: 'Tenant login created successfully. They will be required to change their password on first login.' });
@@ -194,7 +194,7 @@ export default async function tenantsRoutes(fastify) {
     // Verify tenant belongs to this landlord
     const tenantRes = await queryWithRLS(
       req.user.landlord_id,
-      `SELECT id, landlord_id, full_name FROM tenant_profiles WHERE id = $1`,
+      `SELECT id, landlord_id, full_name FROM occupant_profiles WHERE id = $1`,
       [req.params.id]
     );
     if (!tenantRes.rows[0]) return reply.code(404).send({ error: 'Tenant not found' });
@@ -248,7 +248,7 @@ export default async function tenantsRoutes(fastify) {
     // Block deletion if active lease exists
     const leaseCheck = await queryWithRLS(
       req.user.landlord_id,
-      `SELECT id FROM leases WHERE tenant_id = $1 AND is_active = TRUE`,
+      `SELECT id FROM agreements WHERE occupant_id = $1 AND is_active = TRUE`,
       [req.params.id]
     );
     if (leaseCheck.rows[0]) {
@@ -256,7 +256,7 @@ export default async function tenantsRoutes(fastify) {
     }
     await queryWithRLS(
       req.user.landlord_id,
-      `DELETE FROM tenant_profiles WHERE id = $1`,
+      `DELETE FROM occupant_profiles WHERE id = $1`,
       [req.params.id]
     );
 

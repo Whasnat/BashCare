@@ -3,7 +3,7 @@ import notificationService from './notificationService.js';
 
 class BillingService {
   /**
-   * Generates invoices for ALL active leases across ALL landlords
+   * Generates invoices for ALL active agreements across ALL landlords
    * for the given billing month.
    */
   async generateSystemWideInvoices(targetDate = new Date()) {
@@ -16,15 +16,15 @@ class BillingService {
       
       const result = await queryAdmin(
         `INSERT INTO ledger_invoices
-           (landlord_id, lease_id, tenant_id, billing_month, base_rent, amount_due, due_date)
-         SELECT l.landlord_id, l.id, l.tenant_id, $1, l.base_rent, l.base_rent, $2
-         FROM leases l
+           (landlord_id, agreement_id, occupant_id, billing_month, base_rent, amount_due, due_date)
+         SELECT l.landlord_id, l.id, l.occupant_id, $1, l.base_rent, l.base_rent, $2
+         FROM agreements l
          WHERE l.is_active = TRUE
            AND NOT EXISTS (
              SELECT 1 FROM ledger_invoices li
-             WHERE li.lease_id = l.id AND li.billing_month = $1
+             WHERE li.agreement_id = l.id AND li.billing_month = $1
            )
-         RETURNING id, tenant_id, landlord_id`,
+         RETURNING id, occupant_id, landlord_id`,
         [billing_month, dueDate.toISOString().split('T')[0]]
       );
 
@@ -35,8 +35,8 @@ class BillingService {
         // 1. Check for unbilled maintenance requests with a cost
         const maintenanceRes = await queryAdmin(
           `SELECT id, cost FROM maintenance_requests 
-           WHERE tenant_id = $1 AND cost > 0 AND billed_invoice_id IS NULL`,
-          [row.tenant_id]
+           WHERE occupant_id = $1 AND cost > 0 AND billed_invoice_id IS NULL`,
+          [row.occupant_id]
         );
 
         for (const req of maintenanceRes.rows) {
@@ -56,7 +56,7 @@ class BillingService {
 
         // 2. Send invoice generation notification
         notificationService.sendNotification(
-          row.tenant_id,
+          row.occupant_id,
           'INVOICE_GENERATED',
           'New Invoice Generated',
           `Your invoice for ${billing_month} has been generated and is due on the 10th.`,
@@ -81,7 +81,7 @@ class BillingService {
       console.log(`[BillingService] Scanning for upcoming due dates (3 days away)`);
       
       const result = await queryAdmin(`
-        SELECT i.id, i.tenant_id, i.billing_month, i.due_date, i.amount_due,
+        SELECT i.id, i.occupant_id, i.billing_month, i.due_date, i.amount_due,
                i.base_rent + i.utility_charges + i.late_fees - i.amount_paid AS balance_remaining
         FROM ledger_invoices i
         WHERE i.status IN ('UNPAID', 'PARTIALLY_PAID')
@@ -91,7 +91,7 @@ class BillingService {
       for (const row of result.rows) {
         if (parseFloat(row.balance_remaining) > 0) {
           notificationService.sendNotification(
-            row.tenant_id,
+            row.occupant_id,
             'PAYMENT_REMINDER',
             'Upcoming Payment Due',
             `Your payment of ৳${row.balance_remaining} for ${row.billing_month.toISOString().split('T')[0]} is due in 3 days (${row.due_date.toISOString().split('T')[0]}).`,
@@ -110,6 +110,34 @@ class BillingService {
   }
 
   /**
+   * Generates a per-stay invoice for a checked-out booking
+   */
+  async generateCheckoutInvoice(landlord_id, booking) {
+    const { id: agreement_id, occupant_id, check_in, check_out, rate_per_unit } = booking;
+    
+    const start = new Date(check_in);
+    const end = new Date(check_out || new Date());
+    
+    let diffTime = Math.abs(end - start);
+    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) diffDays = 1;
+
+    const base_rent = diffDays * (Number(rate_per_unit) || 0);
+    const billing_month = start.toISOString().split('T')[0];
+    const due_date = end.toISOString().split('T')[0];
+
+    const result = await queryAdmin(
+      `INSERT INTO ledger_invoices
+         (landlord_id, agreement_id, occupant_id, billing_month, base_rent, amount_due, due_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, occupant_id, landlord_id, base_rent, amount_due`,
+      [landlord_id, agreement_id, occupant_id, billing_month, base_rent, base_rent, due_date]
+    );
+
+    return result.rows[0];
+  }
+
+  /**
    * Scans for unpaid invoices past their due date that haven't had a late fee applied or waived.
    * Applies a flat 500 BDT late fee and sends a warning.
    */
@@ -121,7 +149,7 @@ class BillingService {
 
       // Select invoices that need a late fee
       const result = await queryAdmin(`
-        SELECT i.id, i.tenant_id, i.billing_month, i.amount_due
+        SELECT i.id, i.occupant_id, i.billing_month, i.amount_due
         FROM ledger_invoices i
         WHERE i.status IN ('UNPAID', 'PARTIALLY_PAID')
           AND i.due_date < CURRENT_DATE
@@ -144,7 +172,7 @@ class BillingService {
 
         // Send warning
         notificationService.sendNotification(
-          row.tenant_id,
+          row.occupant_id,
           'OVERDUE_WARNING',
           'Invoice Overdue Penalty',
           `Your invoice for ${row.billing_month.toISOString().split('T')[0]} is overdue. A late fee of ৳${FLAT_LATE_FEE} has been applied.`,

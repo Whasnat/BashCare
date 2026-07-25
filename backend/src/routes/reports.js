@@ -12,12 +12,14 @@ export default async function reportsRoutes(fastify) {
         (SELECT row_to_json(o) FROM (
           SELECT
             COUNT(*) AS total_units,
-            COUNT(*) FILTER (WHERE status = 'OCCUPIED') AS occupied,
-            COUNT(*) FILTER (WHERE status = 'VACANT') AS vacant,
-            COUNT(*) FILTER (WHERE status = 'MAINTENANCE') AS maintenance,
-            ROUND(COUNT(*) FILTER (WHERE status = 'OCCUPIED')::NUMERIC / NULLIF(COUNT(*),0) * 100, 1) AS occupancy_rate
+            COUNT(*) FILTER (WHERE status = 'OCCUPIED' OR status = 'CHECKED_IN') AS occupied,
+            COUNT(*) FILTER (WHERE status = 'VACANT' OR status = 'AVAILABLE') AS vacant,
+            COUNT(*) FILTER (WHERE status = 'MAINTENANCE' OR status = 'HOUSEKEEPING') AS maintenance,
+            ROUND(COUNT(*) FILTER (WHERE status = 'OCCUPIED' OR status = 'CHECKED_IN')::NUMERIC / NULLIF(COUNT(*),0) * 100, 1) AS occupancy_rate
           FROM units
         ) o) AS occupancy,
+        
+        (SELECT property_type FROM properties ORDER BY created_at ASC LIMIT 1) AS primary_property_type,
         
         (SELECT COALESCE(json_agg(r), '[]'::json) FROM (
           SELECT DATE_TRUNC('month', billing_month) AS month,
@@ -47,9 +49,9 @@ export default async function reportsRoutes(fastify) {
           SELECT pt.created_at, pt.amount, pt.method, pt.status,
                  tp.full_name AS tenant_name, u.unit_number, p.name AS property_name
           FROM payment_transactions pt
-          JOIN tenant_profiles tp ON tp.id = pt.tenant_id
+          JOIN occupant_profiles tp ON tp.id = pt.occupant_id
           JOIN ledger_invoices li ON li.id = pt.invoice_id
-          JOIN leases l ON l.id = li.lease_id
+          JOIN agreements l ON l.id = li.agreement_id
           JOIN units u ON u.id = l.unit_id
           JOIN properties p ON p.id = u.property_id
           ORDER BY pt.created_at DESC
@@ -61,6 +63,7 @@ export default async function reportsRoutes(fastify) {
 
     return {
       occupancy: row.occupancy,
+      primary_property_type: row.primary_property_type || 'RESIDENTIAL',
       revenue_monthly: row.revenue_monthly,
       payment_methods: row.payment_methods,
       overdue: row.overdue,
@@ -76,8 +79,8 @@ export default async function reportsRoutes(fastify) {
              ict.total_calculated_due, ict.balance_remaining, li.status
       FROM ledger_invoices li
       JOIN invoice_calculated_totals ict ON ict.id = li.id
-      JOIN tenant_profiles tp ON tp.id = li.tenant_id
-      JOIN leases l ON l.id = li.lease_id
+      JOIN occupant_profiles tp ON tp.id = li.occupant_id
+      JOIN agreements l ON l.id = li.agreement_id
       JOIN units u ON u.id = l.unit_id
       JOIN properties p ON p.id = u.property_id
       ORDER BY li.billing_month DESC, tp.full_name`);
