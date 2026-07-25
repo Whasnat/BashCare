@@ -39,7 +39,7 @@ export default function Dashboard() {
     );
   }
 
-  const { occupancy, overdue, recent_activity } = data;
+  const { occupancy, overdue, recent_activity } = data || {};
 
   return (
     <div>
@@ -123,7 +123,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions / Notices */}
-        <div className="card">
+        <div className="card" data-tour-id="dashboard-actions">
           <h3 className="section-title">{t('dashboard.quickActions')}</h3>
           <div className="flex-col gap-3">
             <button className="btn btn-secondary justify-start py-3" onClick={() => navigate('/occupants')}>

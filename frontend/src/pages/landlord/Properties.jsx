@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Plus, Pencil, Trash2, DoorOpen, Search, X, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import EmptyState from '../../components/EmptyState';
 
 function PropertyModal({ open, onClose, property, onSaved }) {
   const isEdit = !!property;
@@ -230,6 +232,15 @@ export default function Properties() {
       </div>
 
       {/* Table */}
+      {properties.length === 0 && !loading && !search ? (
+        <EmptyState 
+          icon={Building2}
+          title="No properties yet"
+          message="Add your first property to start managing units and occupants."
+          actionLabel="Add Property"
+          onAction={() => { setEditing(null); setModalOpen(true); }}
+        />
+      ) : (
       <div className="table-container">
         <div className="table-header">
           <h3 className="table-title">{t('properties.title')}</h3>
@@ -321,6 +332,7 @@ export default function Properties() {
           </tbody>
         </table>
       </div>
+      )}
 
       <PropertyModal
         open={modalOpen}

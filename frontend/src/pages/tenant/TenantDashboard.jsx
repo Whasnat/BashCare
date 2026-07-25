@@ -39,9 +39,10 @@ export default function TenantDashboard() {
     </div>
   );
 
-  const openInvoices = invoices.filter(i => i.status !== 'PAID');
+  const safeInvoices = invoices || [];
+  const openInvoices = safeInvoices.filter(i => i.status !== 'PAID');
   const totalOutstanding = openInvoices.reduce((s, i) => s + Number(i.balance_remaining || 0), 0);
-  const latestInvoice = invoices[0] || null;
+  const latestInvoice = safeInvoices[0] || null;
   const { label: latestLabel, cls: latestCls } = STATUS_INFO[latestInvoice?.status] || {};
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -76,7 +77,7 @@ export default function TenantDashboard() {
         </div>
         <div className="stat-card emerald">
           <div className="stat-content">
-            <div className="stat-value">{invoices.filter(i => i.status === 'PAID').length}</div>
+            <div className="stat-value">{safeInvoices.filter(i => i.status === 'PAID').length}</div>
             <div className="stat-label">Paid Invoices</div>
           </div>
           <div className="stat-icon emerald"><CheckCircle2 size={22} /></div>

@@ -62,12 +62,12 @@ export default async function reportsRoutes(fastify) {
     const row = result.rows[0];
 
     return {
-      occupancy: row.occupancy,
+      occupancy: row.occupancy || { total_units: 0, occupied: 0, vacant: 0, maintenance: 0, occupancy_rate: 0 },
       primary_property_type: row.primary_property_type || 'RESIDENTIAL',
-      revenue_monthly: row.revenue_monthly,
-      payment_methods: row.payment_methods,
-      overdue: row.overdue,
-      recent_activity: row.recent_activity,
+      revenue_monthly: row.revenue_monthly || [],
+      payment_methods: row.payment_methods || [],
+      overdue: row.overdue || { count: 0, total_outstanding: 0 },
+      recent_activity: row.recent_activity || [],
     };
   });
 

@@ -171,7 +171,7 @@ function App() {
               style: {
                 background: 'var(--bg-elevated)',
                 color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)'
+                border: '1px solid var(--border)'
               }
             }}
           />

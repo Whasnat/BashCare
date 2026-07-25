@@ -77,8 +77,17 @@ export default function Topbar({ onMenuToggle }) {
           onClick={cycleTheme}
           aria-label={`Theme: ${themeLabel}. Click to change.`}
           title={`Theme: ${themeLabel}`}
+          data-tour-id="topbar-theme"
         >
           <ThemeIcon size={18} />
+        </button>
+
+        {/* Temporary Reset Tour Button */}
+        <button 
+          className="btn btn-ghost btn-sm" 
+          onClick={() => useAuthStore.getState().resetOnboarding()}
+        >
+          Reset Tour
         </button>
         
         <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -102,18 +111,8 @@ export default function Topbar({ onMenuToggle }) {
           </button>
           
           {showNotifications && (
-            <div style={{
-              position: 'absolute', top: '100%', right: 0, marginTop: 8,
-              width: 320, maxHeight: 400, overflowY: 'auto',
-              background: 'var(--bg-elevated)', borderRadius: 12,
-              boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: '1px solid var(--border-color)',
-              zIndex: 100, display: 'flex', flexDirection: 'column'
-            }}>
-              <div style={{
-                padding: '12px 16px', borderBottom: '1px solid var(--border-color)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1
-              }}>
+            <div className="notification-dropdown">
+              <div className="notification-dropdown-header">
                 <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Notifications</h3>
                 {unreadCount > 0 && (
                   <button onClick={markAllAsRead} className="btn-ghost" style={{ fontSize: '0.75rem', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)' }}>
@@ -122,7 +121,7 @@ export default function Topbar({ onMenuToggle }) {
                 )}
               </div>
               
-              <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div className="notification-dropdown-body">
                 {notifications.length === 0 ? (
                   <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                     No notifications yet
@@ -132,11 +131,7 @@ export default function Topbar({ onMenuToggle }) {
                     <div 
                       key={n.id} 
                       onClick={() => !n.is_read && markAsRead(n.id)}
-                      style={{
-                        padding: '10px 12px', borderRadius: 8, cursor: n.is_read ? 'default' : 'pointer',
-                        background: n.is_read ? 'transparent' : 'var(--bg-hover)',
-                        transition: 'background 0.2s', borderLeft: n.is_read ? '3px solid transparent' : '3px solid var(--accent-primary)'
-                      }}
+                      className={`notification-item ${n.is_read ? 'read' : 'unread'}`}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                         <span style={{ fontSize: '0.85rem', fontWeight: n.is_read ? 500 : 600, color: 'var(--text-primary)' }}>{n.title}</span>

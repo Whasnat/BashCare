@@ -92,8 +92,12 @@ export default function Sidebar({ isOpen, onClose }) {
         {navLinks.map((item) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.path);
+          const tourId = user?.role === 'tenant' 
+            ? 'tenant-' + item.path.replace('/portal/', '')
+            : 'sidebar-' + item.path.replace('/', '');
+            
           return (
-            <Link key={item.path} to={item.path} className={`nav-item ${isActive ? 'active' : ''}`}>
+            <Link key={item.path} to={item.path} className={`nav-item ${isActive ? 'active' : ''}`} data-tour-id={tourId}>
               <Icon className="nav-icon" size={18} />
               <span>{t(item.labelKey)}</span>
               {item.badge && <span className="nav-badge">{item.badge}</span>}
