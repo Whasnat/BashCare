@@ -8,10 +8,11 @@ const useAuthStore = create(
       user: null,
       token: null,
       isAuthenticated: false,
-      onboardingComplete: false,
+      onboarding: { isActive: true, step: 0 },
 
-      completeOnboarding: () => set({ onboardingComplete: true }),
-      resetOnboarding: () => set({ onboardingComplete: false }),
+      startOnboarding: () => set({ onboarding: { isActive: true, step: 0 } }),
+      advanceOnboarding: () => set((state) => ({ onboarding: { ...state.onboarding, step: state.onboarding.step + 1 } })),
+      completeOnboarding: () => set({ onboarding: { isActive: false, step: 0 } }),
 
       login: async (email, password) => {
         const { data } = await api.post('/auth/login', { email, password });
@@ -40,7 +41,7 @@ const useAuthStore = create(
     }),
     {
       name: 'bashacare-auth',
-      partialize: (s) => ({ user: s.user, token: s.token, isAuthenticated: s.isAuthenticated, onboardingComplete: s.onboardingComplete }),
+      partialize: (s) => ({ user: s.user, token: s.token, isAuthenticated: s.isAuthenticated, onboarding: s.onboarding }),
     }
   )
 );

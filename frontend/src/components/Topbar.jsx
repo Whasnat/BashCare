@@ -85,7 +85,7 @@ export default function Topbar({ onMenuToggle }) {
         {/* Temporary Reset Tour Button */}
         <button 
           className="btn btn-ghost btn-sm" 
-          onClick={() => useAuthStore.getState().resetOnboarding()}
+          onClick={() => useAuthStore.getState().startOnboarding()}
         >
           Reset Tour
         </button>

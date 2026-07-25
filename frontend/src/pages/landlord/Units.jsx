@@ -3,6 +3,7 @@ import { DoorOpen, Plus, Pencil, Trash2, Search, X, Building2, Save } from 'luci
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import useAuthStore from '../../store/authStore';
 
 const STATUS_COLORS = {
   OCCUPIED: 'badge-occupied',
@@ -188,6 +189,10 @@ export default function Units() {
   const handleSaved = (saved, mode) => {
     if (mode === 'add') {
       fetchAll(); // re-fetch to get property_name joined
+      const { onboarding, advanceOnboarding } = useAuthStore.getState();
+      if (onboarding?.isActive && onboarding?.step === 5) {
+        advanceOnboarding();
+      }
     } else {
       setUnits((u) => u.map((x) => (x.id === saved.id ? { ...x, ...saved } : x)));
     }

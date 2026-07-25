@@ -834,7 +834,13 @@ h3 { font-size: 1.2rem; }
   position: fixed;
   inset: 0;
   z-index: 9999;
-  pointer-events: auto; /* blocks clicks on the page */
+  pointer-events: none; 
+}
+.tour-blocker {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  backdrop-filter: blur(1px);
 }
 .tour-cutout {
   position: absolute;

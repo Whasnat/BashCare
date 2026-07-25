@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Plus, X, Search, Calendar, AlertCircle, Save } from 'lucide-react';
+import { Plus, Search, FileText, Calendar, AlertCircle, X, Save, Edit } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import useAuthStore from '../../store/authStore';
 
 function LeaseModal({ open, onClose, units, tenants, onSaved }) {
   const [form, setForm] = useState({
@@ -303,6 +304,10 @@ export default function Leases() {
 
   const handleLeaseCreated = (newLease) => {
     refetch();
+    const { onboarding, advanceOnboarding } = useAuthStore.getState();
+    if (onboarding?.isActive && onboarding?.step === 11) {
+      advanceOnboarding();
+    }
   };
 
   const handleTerminated = (leaseId) => {
@@ -332,7 +337,7 @@ export default function Leases() {
           <h1 className="page-title">{t('agreements.title')}</h1>
           <p className="page-subtitle">{t('agreements.subtitle')}</p>
         </div>
-        <button className="btn btn-primary" id="create-lease-btn" onClick={() => setModalOpen(true)}>
+        <button className="btn btn-primary" id="add-agreement-btn" onClick={() => setModalOpen(true)}>
           <Plus size={16} /> {t('agreements.createLease')}
         </button>
       </div>

@@ -4,6 +4,7 @@ import { Users, Plus, Pencil, Trash2, Search, X, Phone, Mail, Shield, KeyRound, 
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import useAuthStore from '../../store/authStore';
 
 // ─── Tenant Add/Edit Modal ────────────────────────────────────────────
 function TenantModal({ open, onClose, tenant, onSaved }) {
@@ -373,6 +374,12 @@ export default function Tenants() {
 
   const handleSaved = (saved, mode) => {
     refetch();
+    if (mode === 'add') {
+      const { onboarding, advanceOnboarding } = useAuthStore.getState();
+      if (onboarding?.isActive && onboarding?.step === 8) {
+        advanceOnboarding();
+      }
+    }
   };
 
   const handleDeleted = (id) => {
@@ -390,7 +397,7 @@ export default function Tenants() {
           <h1 className="page-title">{t('occupants.title')}</h1>
           <p className="page-subtitle">{t('occupants.subtitle')}</p>
         </div>
-        <button className="btn btn-primary" id="add-tenant-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
+        <button className="btn btn-primary" id="add-occupant-btn" onClick={() => { setEditing(null); setModalOpen(true); }}>
           <Plus size={16} /> {t('occupants.addTenant')}
         </button>
       </div>

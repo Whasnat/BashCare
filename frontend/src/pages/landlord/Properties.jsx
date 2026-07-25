@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import EmptyState from '../../components/EmptyState';
+import useAuthStore from '../../store/authStore';
 
 function PropertyModal({ open, onClose, property, onSaved }) {
   const isEdit = !!property;
@@ -173,7 +174,13 @@ export default function Properties() {
   };
 
   const handleSaved = (saved, mode) => {
-    if (mode === 'add') setProperties((p) => [saved, ...p]);
+    if (mode === 'add') {
+      setProperties((p) => [saved, ...p]);
+      const { onboarding, advanceOnboarding } = useAuthStore.getState();
+      if (onboarding?.isActive && onboarding?.step === 2) {
+        advanceOnboarding();
+      }
+    }
     else setProperties((p) => p.map((x) => (x.id === saved.id ? { ...x, ...saved } : x)));
   };
 
