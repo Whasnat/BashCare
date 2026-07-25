@@ -11,7 +11,7 @@ export default async function reservationsRoutes(fastify) {
     const { property_id, start_date, end_date } = req.query;
     
     let sql = `
-      SELECT a.*, u.unit_number, u.unit_type, o.full_name as guest_name, o.email as guest_email, o.phone as guest_phone
+      SELECT a.*, u.unit_number, u.unit_type, o.full_name as guest_name, o.email as guest_email, o.phone_number as guest_phone
       FROM agreements a
       JOIN units u ON a.unit_id = u.id
       JOIN occupant_profiles o ON a.occupant_id = o.id
