@@ -41,7 +41,7 @@ export default async function propertiesRoutes(fastify) {
     if (!name || !address) return reply.code(400).send({ error: 'Name and address are required' });
     const result = await queryWithRLS(
       req.user.landlord_id,
-      `INSERT INTO properties (landlord_id, name, address, property_type) VALUES ($1, $2, $3, COALESCE($4, 'RESIDENTIAL')) RETURNING *`,
+      `INSERT INTO properties (landlord_id, name, address, property_type) VALUES ($1, $2, $3, COALESCE($4::text, 'RESIDENTIAL')::property_type) RETURNING *`,
       [req.user.landlord_id, name, address, property_type]
     );
     return reply.code(201).send(result.rows[0]);
@@ -55,7 +55,7 @@ export default async function propertiesRoutes(fastify) {
       `UPDATE properties SET
          name = COALESCE($1, name),
          address = COALESCE($2, address),
-         property_type = COALESCE($3, property_type),
+         property_type = COALESCE($3::text, property_type::text)::property_type,
          updated_at = NOW()
        WHERE id = $4 RETURNING *`,
       [name, address, property_type, req.params.id]
