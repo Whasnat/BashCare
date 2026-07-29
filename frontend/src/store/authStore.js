@@ -20,11 +20,15 @@ const useAuthStore = create(
       propertyId: null,
       permissions: [],
       impersonation: { active: false, originalToken: null },
+      completedTours: [],
       onboarding: { isActive: true, step: 0 },
 
       startOnboarding: () => set({ onboarding: { isActive: true, step: 0 } }),
       advanceOnboarding: () => set((state) => ({ onboarding: { ...state.onboarding, step: state.onboarding.step + 1 } })),
-      completeOnboarding: () => set({ onboarding: { isActive: false, step: 0 } }),
+      completeOnboarding: () => set((state) => ({ 
+        onboarding: { isActive: false, step: 0 },
+        completedTours: state.user ? Array.from(new Set([...(state.completedTours || []), state.user.id])) : state.completedTours || []
+      })),
 
       validateUser: async (username, propertyCode) => {
         const { data } = await api.post('/auth/login/validate-user', { username, property_code: propertyCode });
@@ -44,7 +48,8 @@ const useAuthStore = create(
           propertyCode: decoded.property_code || null,
           propertyId: decoded.property_id || null,
           permissions: decoded.module_permissions || [],
-          impersonation: { active: decoded.is_impersonating || false, originalToken: get().token }
+          impersonation: { active: decoded.is_impersonating || false, originalToken: get().token },
+          onboarding: { isActive: !(get().completedTours || []).includes(data.user.id), step: 0 }
         });
         return data.user;
       },
@@ -92,7 +97,8 @@ const useAuthStore = create(
         propertyCode: s.propertyCode,
         propertyId: s.propertyId,
         permissions: s.permissions,
-        impersonation: s.impersonation
+        impersonation: s.impersonation,
+        completedTours: s.completedTours || []
       }),
     }
   )
