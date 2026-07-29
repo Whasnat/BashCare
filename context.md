@@ -67,7 +67,7 @@ UPDATE properties SET property_type = COALESCE($1::text, property_type::text)::p
 - **Data Models**:
   - `landlords` (The SaaS tenants)
   - `users` (Login credentials for landlords, tenants, and admins)
-  - `properties` (Buildings, campuses)
+  - `properties` (Buildings, campuses, etc. Contains a unique `property_code` used by tenants to register/login)
   - `units` (Rooms, apartments, hospital beds)
   - `occupant_profiles` (The residents/tenants)
   - `agreements` (Leases, hotel reservations)
@@ -103,7 +103,11 @@ UPDATE properties SET property_type = COALESCE($1::text, property_type::text)::p
 The onboarding tour (`components/OnboardingTour.jsx`) is a strictly enforced, state-machine-driven interactive wizard. 
 - It forces new landlords to create demo data (Properties -> Units -> Occupants -> Agreements).
 - It relies on a CSS trick with 4 `.tour-blocker` divs to intercept clicks outside the target area.
+- Targets `.modal` (NOT `.modal-content`) for forms.
 - Components like `Properties.jsx` call `useAuthStore.getState().advanceOnboarding()` upon a successful API `POST` to move the tour to the next step.
+
+### Additional Notes
+- **Authentication**: We use `bcryptjs` instead of native `bcrypt` to prevent deployment crashes (e.g. `ERR_CONNECTION_CLOSED` on Render) due to missing native build tools.
 
 ## 6. How to Contribute as an AI
 1. **Read `context.md` (You are here).**

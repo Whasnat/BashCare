@@ -8,7 +8,7 @@ import useAuthStore from '../../store/authStore';
 
 function LeaseModal({ open, onClose, units, tenants, onSaved }) {
   const [form, setForm] = useState({
-    unit_id: '', tenant_id: '', base_rent: '',
+    unit_id: '', occupant_id: '', base_rent: '',
     security_deposit: '', utility_tariff: '',
     start_date: '', end_date: '', notes: '',
   });
@@ -26,7 +26,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
   useEffect(() => {
     if (open) {
       setForm({
-        unit_id: '', tenant_id: '', base_rent: '',
+        unit_id: '', occupant_id: '', base_rent: '',
         security_deposit: '', utility_tariff: '',
         start_date: new Date().toISOString().split('T')[0],
         end_date: '', notes: '',
@@ -37,7 +37,7 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.unit_id || !form.tenant_id || !form.base_rent || !form.start_date) {
+    if (!form.unit_id || !form.occupant_id || !form.base_rent || !form.start_date) {
       return toast.error('Unit, tenant, base rent, and start date are required');
     }
     setSaving(true);
@@ -101,8 +101,8 @@ function LeaseModal({ open, onClose, units, tenants, onSaved }) {
                   <label className="form-label">Tenant *</label>
                   <select
                     className="form-select"
-                    value={form.tenant_id}
-                    onChange={(e) => setForm({ ...form, tenant_id: e.target.value })}
+                    value={form.occupant_id}
+                    onChange={(e) => setForm({ ...form, occupant_id: e.target.value })}
                     required
                   >
                     <option value="">Select a tenant…</option>
