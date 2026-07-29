@@ -1,6 +1,6 @@
 import { queryWithRLS, queryAdmin } from '../config/database.js';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { sendInviteEmail } from '../services/emailService.js';
 import activityService from '../services/activityService.js';
 

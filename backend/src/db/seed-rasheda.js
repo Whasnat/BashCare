@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import pkg from 'pg';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 const { Client } = pkg;
 
 const config = process.env.DATABASE_URL ? {

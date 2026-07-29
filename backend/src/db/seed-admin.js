@@ -8,7 +8,7 @@
  */
 
 import 'dotenv/config';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import pkg from 'pg';
 const { Client } = pkg;
 

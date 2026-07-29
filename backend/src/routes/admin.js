@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { queryAdmin } from '../config/database.js';
 
 export default async function adminRoutes(fastify) {
