@@ -7,19 +7,19 @@ const STEPS = [
   // Properties
   { target: '[data-tour-id="sidebar-properties"]', title: 'Step 1: Properties', text: 'Click here to go to Properties.', advanceOn: 'route', route: '/properties' },
   { target: '#add-property-btn', title: 'Add Property', text: 'Click this button to add your first demo property.', advanceOn: 'click' },
-  { target: '.modal-content', title: 'Create Property', text: 'Fill out the demo details and click Save.', advanceOn: 'manual' },
+  { target: '.modal', title: 'Create Property', text: 'Fill out the demo details and click Save.', advanceOn: 'manual' },
   // Units
   { target: '[data-tour-id="sidebar-units"]', title: 'Step 2: Units', text: 'Now let\'s add a unit to your property.', advanceOn: 'route', route: '/units' },
   { target: '#add-unit-btn', title: 'Add Unit', text: 'Click here to create a unit.', advanceOn: 'click' },
-  { target: '.modal-content', title: 'Create Unit', text: 'Fill out the unit details and save.', advanceOn: 'manual' },
+  { target: '.modal', title: 'Create Unit', text: 'Fill out the unit details and save.', advanceOn: 'manual' },
   // Occupants
   { target: '[data-tour-id="sidebar-occupants"]', title: 'Step 3: Occupants', text: 'Let\'s register a demo occupant.', advanceOn: 'route', route: '/occupants' },
   { target: '#add-occupant-btn', title: 'Add Occupant', text: 'Click here to add an occupant.', advanceOn: 'click' },
-  { target: '.modal-content', title: 'Create Occupant', text: 'Enter the details and save.', advanceOn: 'manual' },
+  { target: '.modal', title: 'Create Occupant', text: 'Enter the details and save.', advanceOn: 'manual' },
   // Agreements
   { target: '[data-tour-id="sidebar-agreements"]', title: 'Step 4: Agreements', text: 'Finally, create a lease or reservation.', advanceOn: 'route', route: '/agreements' },
   { target: '#add-agreement-btn', title: 'Add Agreement', text: 'Click here to tie the occupant to the unit.', advanceOn: 'click' },
-  { target: '.modal-content', title: 'Create Agreement', text: 'Fill out the agreement and save to complete the tour!', advanceOn: 'manual' },
+  { target: '.modal', title: 'Create Agreement', text: 'Fill out the agreement and save to complete the tour!', advanceOn: 'manual' },
 ];
 
 export default function OnboardingTour({ role }) {
@@ -71,7 +71,7 @@ export default function OnboardingTour({ role }) {
         });
         
         // Only scroll if it's offscreen and not a modal
-        if (current.target !== '.modal-content') {
+        if (current.target !== '.modal') {
             const inViewport = (
                 rect.top >= 0 &&
                 rect.left >= 0 &&
