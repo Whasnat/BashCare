@@ -52,6 +52,11 @@ export default function OnboardingTour({ role }) {
   useEffect(() => {
     if (!isActive || currentStep >= STEPS.length) return;
     
+    if (window.innerWidth < 768) {
+      completeOnboarding();
+      return;
+    }
+
     const updateTargetPosition = () => {
       const current = STEPS[currentStep];
       const el = document.querySelector(current.target);
@@ -144,7 +149,7 @@ export default function OnboardingTour({ role }) {
           }} />
         </>
       ) : (
-        <div className="tour-blocker" style={{ inset: 0 }} />
+        <div className="tour-blocker" style={{ inset: 0, opacity: 0, pointerEvents: 'none' }} />
       )}
       
       {/* Tooltip */}
