@@ -90,4 +90,46 @@ export async function transactionWithRLS(landlordId, operations) {
   }
 }
 
+/**
+ * Execute query with RLS context AND property scoping for managers.
+ * @param {Object} user - Decoded JWT payload
+ * @param {string} query - Base SQL query
+ * @param {Array} params - Query parameters
+ */
+export async function queryWithScope(user, query, params = []) {
+  if (!user.landlord_id || !UUID_RE.test(user.landlord_id)) {
+    throw new Error('Invalid landlord_id: must be a valid UUID');
+  }
+  if (!user.id || !UUID_RE.test(user.id)) {
+    throw new Error('Invalid user_id: must be a valid UUID');
+  }
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SET LOCAL ROLE bashacare_rls_user;');
+    await client.query(`SET LOCAL app.current_landlord_id = '${user.landlord_id}';`);
+
+    let finalQuery = query;
+    if (user.role === 'manager') {
+      finalQuery = `
+        WITH base_query AS (${query})
+        SELECT * FROM base_query
+        WHERE property_id IN (
+          SELECT property_id FROM manager_property_assignments WHERE user_id = '${user.id}'
+        )
+      `;
+    }
+
+    const result = await client.query(finalQuery, params);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 export default pool;

@@ -23,6 +23,8 @@ import notificationsRoutes from './routes/notifications.js';
 import cronRoutes from './routes/cron.js';
 import maintenanceRoutes from './routes/maintenance.js';
 import activityRoutes from './routes/activity.js';
+import managersRoutes from './routes/managers.js';
+import impersonationRoutes from './routes/impersonation.js';
 import cronService from './services/cronService.js';
 
 const fastify = Fastify({
@@ -72,6 +74,27 @@ fastify.decorate('requireRole', (roles) => async (request, reply) => {
   }
 });
 
+fastify.decorate('requireModulePermission', (requiredPermission) => async (request, reply) => {
+  await fastify.authenticate(request, reply);
+  const user = request.user;
+  
+  if (user.role === 'admin' || user.role === 'landlord') {
+    return;
+  }
+  if (user.role === 'tenant') {
+    reply.code(403).send({ error: 'Tenant access forbidden' });
+    return;
+  }
+  if (user.role === 'manager') {
+    if (!user.module_permissions || !user.module_permissions.includes(requiredPermission)) {
+      reply.code(403).send({ 
+        error: 'Forbidden', 
+        message: `Missing required module permission: ${requiredPermission}` 
+      });
+    }
+  }
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────
 fastify.register(authRoutes, { prefix: '/api/v1/auth' });
 fastify.register(adminRoutes, { prefix: '/api/v1/admin' });
@@ -91,6 +114,8 @@ fastify.register(notificationsRoutes, { prefix: '/api/v1/notifications' });
 fastify.register(cronRoutes, { prefix: '/api/v1/cron' });
 fastify.register(maintenanceRoutes, { prefix: '/api/v1/maintenance' });
 fastify.register(activityRoutes, { prefix: '/api/v1/activity-logs' });
+fastify.register(managersRoutes, { prefix: '/api/v1/managers' });
+fastify.register(impersonationRoutes, { prefix: '/api/v1/impersonate' });
 
 // ─── Initialize Background Cron Jobs ──────────────────────────────────
 cronService.startCronJobs();

@@ -26,9 +26,9 @@ export default async function authRoutes(fastify) {
 
       // Create user account linked to landlord profile
       await queryAdmin(
-        `INSERT INTO users (landlord_id, role, email, password_hash, full_name)
-         VALUES ($1, 'landlord', $2, $3, $4)`,
-        [landlordId, email, hash, full_name || company_name]
+        `INSERT INTO users (landlord_id, role, email, username, password_hash, full_name)
+         VALUES ($1, 'landlord', $2, $3, $4, $5)`,
+        [landlordId, email, email.split('@')[0], hash, full_name || company_name]
       );
 
       return reply.code(201).send({
@@ -43,21 +43,80 @@ export default async function authRoutes(fastify) {
     }
   });
 
-  // ─── Login ──────────────────────────────────────────────────────────
-  fastify.post('/login', async (request, reply) => {
-    const { email, password } = request.body;
+  // ─── Login Step 1: Validate User ────────────────────────────────────
+  fastify.post('/login/validate-user', async (request, reply) => {
+    const { username, property_code } = request.body;
 
-    if (!email || !password) {
-      return reply.code(400).send({ error: 'Email and password are required' });
+    if (!username) {
+      return reply.code(400).send({ error: 'Username is required' });
     }
 
-    const result = await queryAdmin(
-      `SELECT u.*, lp.is_active AS landlord_active, lp.company_name
-       FROM users u
-       LEFT JOIN landlord_profiles lp ON lp.id = u.landlord_id
-       WHERE u.email = $1 AND u.is_active = TRUE`,
-      [email]
-    );
+    let query = `
+      SELECT u.id, u.role, u.full_name, lp.company_name
+      FROM users u
+      LEFT JOIN landlord_profiles lp ON lp.id = u.landlord_id
+    `;
+    const params = [username];
+
+    if (property_code) {
+      // Manager or Tenant path
+      query += `
+        LEFT JOIN manager_property_assignments mpa ON mpa.user_id = u.id
+        LEFT JOIN properties p ON p.id = mpa.property_id
+        WHERE u.username = $1 AND p.property_code = $2 AND u.is_active = TRUE
+      `;
+      params.push(property_code);
+    } else {
+      // Admin or Landlord path
+      query += `
+        WHERE u.username = $1 AND u.role IN ('admin', 'landlord') AND u.is_active = TRUE
+      `;
+    }
+
+    const result = await queryAdmin(query, params);
+    if (result.rows.length === 0) {
+      return reply.code(404).send({ error: 'User not found or inactive' });
+    }
+
+    return { 
+      user_exists: true, 
+      role: result.rows[0].role, 
+      display_name: result.rows[0].full_name || username,
+      company_name: result.rows[0].company_name
+    };
+  });
+
+  // ─── Login Step 2: Authenticate ──────────────────────────────────────
+  fastify.post('/login', async (request, reply) => {
+    const { username, password, property_code } = request.body;
+
+    if (!username || !password) {
+      return reply.code(400).send({ error: 'Username and password are required' });
+    }
+
+    let query = `
+      SELECT u.*, lp.is_active AS landlord_active, lp.company_name
+      FROM users u
+      LEFT JOIN landlord_profiles lp ON lp.id = u.landlord_id
+    `;
+    const params = [username];
+
+    if (property_code) {
+      // Manager or Tenant path
+      query += `
+        LEFT JOIN manager_property_assignments mpa ON mpa.user_id = u.id
+        LEFT JOIN properties p ON p.id = mpa.property_id
+        WHERE u.username = $1 AND p.property_code = $2 AND u.is_active = TRUE
+      `;
+      params.push(property_code);
+    } else {
+      // Admin or Landlord path
+      query += `
+        WHERE u.username = $1 AND u.role IN ('admin', 'landlord') AND u.is_active = TRUE
+      `;
+    }
+
+    const result = await queryAdmin(query, params);
 
     if (result.rows.length === 0) {
       return reply.code(401).send({ error: 'Invalid credentials' });
@@ -74,6 +133,27 @@ export default async function authRoutes(fastify) {
       return reply.code(403).send({ error: 'Your account is pending admin approval' });
     }
 
+    // Fetch permissions and property_id if manager and property_code is provided
+    let module_permissions = [];
+    let property_id = null;
+    if (user.role === 'manager' && property_code) {
+      const pData = await queryAdmin('SELECT id FROM properties WHERE property_code = $1', [property_code]);
+      if (pData.rows.length > 0) {
+        property_id = pData.rows[0].id;
+        const permData = await queryAdmin(
+          'SELECT permission FROM user_module_permissions WHERE user_id = $1 AND property_id = $2', 
+          [user.id, property_id]
+        );
+        module_permissions = permData.rows.map(r => r.permission);
+      }
+    } else if (user.role === 'tenant' && property_code) {
+        // Also fetch property_id for tenant
+        const pData = await queryAdmin('SELECT id FROM properties WHERE property_code = $1', [property_code]);
+        if (pData.rows.length > 0) {
+            property_id = pData.rows[0].id;
+        }
+    }
+
     // Update last login
     await queryAdmin('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
 
@@ -81,7 +161,12 @@ export default async function authRoutes(fastify) {
       id: user.id,
       landlord_id: user.landlord_id,
       role: user.role,
-      email: user.email,
+      username: user.username,
+      property_id: property_id,
+      property_code: property_code || null,
+      module_permissions: module_permissions,
+      is_impersonating: false,
+      impersonator_id: null
     });
 
     return {
@@ -90,6 +175,7 @@ export default async function authRoutes(fastify) {
         id: user.id,
         landlord_id: user.landlord_id,
         role: user.role,
+        username: user.username,
         email: user.email,
         full_name: user.full_name,
         company_name: user.company_name,
@@ -101,7 +187,7 @@ export default async function authRoutes(fastify) {
   // ─── Get Current User ───────────────────────────────────────────────
   fastify.get('/me', { preHandler: [fastify.authenticate] }, async (request) => {
     const result = await queryAdmin(
-      `SELECT u.id, u.email, u.full_name, u.role, u.phone_number,
+      `SELECT u.id, u.email, u.username, u.full_name, u.role, u.phone_number,
               u.must_change_password,
               lp.id AS landlord_id, lp.company_name, lp.plan_tier,
               lp.bkash_merchant_key IS NOT NULL AS has_bkash_merchant,

@@ -31,6 +31,7 @@ function decryptNID(text) {
 
 export default async function tenantsRoutes(fastify) {
   const auth = { preHandler: [fastify.authenticate] };
+  const authManage = { preHandler: [fastify.authenticate, fastify.requireModulePermission('OCCUPANT_MANAGER')] };
 
   fastify.get('/', auth, async (req) => {
     const { page = 1, limit = 50, search = '', status = 'all' } = req.query;
@@ -107,8 +108,23 @@ export default async function tenantsRoutes(fastify) {
     return tenant;
   });
 
-  fastify.post('/', auth, async (req, reply) => {
-    const { full_name, phone_number, email, national_id, emergency_contact, emergency_phone } = req.body;
+  fastify.post('/', authManage, async (req, reply) => {
+    const { full_name, phone_number, email, national_id, emergency_contact, emergency_phone, property_id } = req.body;
+    
+    if (req.user.role === 'manager') {
+      const checkPropertyId = property_id || req.user.property_id;
+      if (!checkPropertyId) return reply.code(400).send({ error: 'Property ID is required for managers' });
+      
+      const check = await queryAdmin(`
+        SELECT 1 FROM manager_property_assignments 
+        WHERE user_id = $1 AND property_id = $2
+      `, [req.user.id, checkPropertyId]);
+      
+      if (check.rows.length === 0) {
+        return reply.code(403).send({ error: 'You are not assigned to manage this property.' });
+      }
+    }
+    
     if (!full_name || !phone_number) return reply.code(400).send({ error: 'full_name and phone_number are required' });
     const encryptedNID = encryptNID(national_id);
     const result = await queryWithRLS(
@@ -132,7 +148,7 @@ export default async function tenantsRoutes(fastify) {
     return reply.code(201).send({ ...newTenant, encrypted_national_id: undefined });
   });
 
-  fastify.patch('/:id', auth, async (req, reply) => {
+  fastify.patch('/:id', authManage, async (req, reply) => {
     const { full_name, phone_number, email, emergency_contact, emergency_phone } = req.body;
     const result = await queryWithRLS(
       req.user.landlord_id,
@@ -151,7 +167,7 @@ export default async function tenantsRoutes(fastify) {
   });
 
   // ─── Create login account for a tenant ────────────────────────────────
-  fastify.post('/:id/create-login', auth, async (req, reply) => {
+  fastify.post('/:id/create-login', authManage, async (req, reply) => {
     const { email, password } = req.body;
     if (!email || !password) return reply.code(400).send({ error: 'email and password are required' });
     if (password.length < 8) return reply.code(400).send({ error: 'Password must be at least 8 characters' });
@@ -187,7 +203,7 @@ export default async function tenantsRoutes(fastify) {
   });
 
   // ─── Invite a tenant (generates setup link) ───────────────────────────
-  fastify.post('/:id/invite', auth, async (req, reply) => {
+  fastify.post('/:id/invite', authManage, async (req, reply) => {
     const { email } = req.body;
     if (!email) return reply.code(400).send({ error: 'Email is required' });
 
@@ -244,7 +260,7 @@ export default async function tenantsRoutes(fastify) {
   });
 
   // ─── Delete a tenant (only if no active lease) ────────────────────────
-  fastify.delete('/:id', auth, async (req, reply) => {
+  fastify.delete('/:id', authManage, async (req, reply) => {
     // Block deletion if active lease exists
     const leaseCheck = await queryWithRLS(
       req.user.landlord_id,
