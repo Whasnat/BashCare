@@ -22,7 +22,7 @@ const STEPS = [
   { target: '.modal-content', title: 'Create Agreement', text: 'Fill out the agreement and save to complete the tour!', advanceOn: 'manual' },
 ];
 
-export default function OnboardingTour() {
+export default function OnboardingTour({ role }) {
   const { onboarding, advanceOnboarding, completeOnboarding } = useAuthStore();
   const location = useLocation();
   const [targetRect, setTargetRect] = useState(null);
@@ -31,6 +31,13 @@ export default function OnboardingTour() {
 
   const isActive = onboarding?.isActive;
   const currentStep = onboarding?.step || 0;
+
+  // Auto-complete tour if not landlord
+  useEffect(() => {
+    if (role && role !== 'landlord' && isActive) {
+      completeOnboarding();
+    }
+  }, [role, isActive, completeOnboarding]);
   
   // 1. Auto-advance on Route Change
   useEffect(() => {
@@ -109,7 +116,7 @@ export default function OnboardingTour() {
     }
   }, [isActive, currentStep, completeOnboarding]);
 
-  if (!isActive || currentStep >= STEPS.length) return null;
+  if (!isActive || currentStep >= STEPS.length || role !== 'landlord') return null;
 
   const current = STEPS[currentStep];
 
