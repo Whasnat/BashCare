@@ -305,7 +305,9 @@ export default function Properties() {
                     }}>🏢</div>
                     <div>
                       <div style={{ fontWeight: 700 }}>{p.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ID: {p.id.slice(0, 8)}…</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        <strong style={{ color: 'var(--accent-primary)' }}>Code: {p.property_code}</strong>
+                      </div>
                     </div>
                   </div>
                 </td>
