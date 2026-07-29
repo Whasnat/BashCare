@@ -38,12 +38,12 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="flex-col gap-4">
           <div className="form-group">
-            <label className="form-label">Email Address</label>
+            <label className="form-label">Username or Email</label>
             <input
-              type="email"
+              type="text"
               className="form-input"
               required
-              placeholder="admin@example.com"
+              placeholder="admin or admin@example.com"
               value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
             />

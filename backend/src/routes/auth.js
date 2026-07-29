@@ -63,13 +63,13 @@ export default async function authRoutes(fastify) {
       query += `
         LEFT JOIN manager_property_assignments mpa ON mpa.user_id = u.id
         LEFT JOIN properties p ON p.id = mpa.property_id
-        WHERE u.username = $1 AND p.property_code = $2 AND u.is_active = TRUE
+        WHERE (u.username = $1 OR u.email = $1) AND p.property_code = $2 AND u.is_active = TRUE
       `;
       params.push(property_code);
     } else {
       // Admin or Landlord path
       query += `
-        WHERE u.username = $1 AND u.role IN ('admin', 'landlord') AND u.is_active = TRUE
+        WHERE (u.username = $1 OR u.email = $1) AND u.role IN ('admin', 'landlord') AND u.is_active = TRUE
       `;
     }
 
@@ -106,13 +106,13 @@ export default async function authRoutes(fastify) {
       query += `
         LEFT JOIN manager_property_assignments mpa ON mpa.user_id = u.id
         LEFT JOIN properties p ON p.id = mpa.property_id
-        WHERE u.username = $1 AND p.property_code = $2 AND u.is_active = TRUE
+        WHERE (u.username = $1 OR u.email = $1) AND p.property_code = $2 AND u.is_active = TRUE
       `;
       params.push(property_code);
     } else {
       // Admin or Landlord path
       query += `
-        WHERE u.username = $1 AND u.role IN ('admin', 'landlord') AND u.is_active = TRUE
+        WHERE (u.username = $1 OR u.email = $1) AND u.role IN ('admin', 'landlord') AND u.is_active = TRUE
       `;
     }
 
