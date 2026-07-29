@@ -37,31 +37,58 @@ export default async function propertiesRoutes(fastify) {
   });
 
   fastify.post('/', auth, async (req, reply) => {
-    const { name, address, property_type } = req.body;
+    const { name, address, property_type, property_code } = req.body;
     if (!name || !address) return reply.code(400).send({ error: 'Name and address are required' });
-    const result = await queryWithRLS(
-      req.user.landlord_id,
-      `INSERT INTO properties (landlord_id, name, address, property_type) VALUES ($1, $2, $3, COALESCE($4::text, 'RESIDENTIAL')::property_type) RETURNING *`,
-      [req.user.landlord_id, name, address, property_type]
-    );
-    return reply.code(201).send(result.rows[0]);
+    
+    try {
+      // property_code will fall back to DB default if not provided here, but since the frontend now provides it we can use it.
+      let result;
+      if (property_code) {
+        result = await queryWithRLS(
+          req.user.landlord_id,
+          `INSERT INTO properties (landlord_id, name, address, property_type, property_code) VALUES ($1, $2, $3, COALESCE($4::text, 'RESIDENTIAL')::property_type, $5) RETURNING *`,
+          [req.user.landlord_id, name, address, property_type, property_code]
+        );
+      } else {
+        result = await queryWithRLS(
+          req.user.landlord_id,
+          `INSERT INTO properties (landlord_id, name, address, property_type) VALUES ($1, $2, $3, COALESCE($4::text, 'RESIDENTIAL')::property_type) RETURNING *`,
+          [req.user.landlord_id, name, address, property_type]
+        );
+      }
+      return reply.code(201).send(result.rows[0]);
+    } catch (err) {
+      if (err.code === '23505') { // Unique violation
+        return reply.code(400).send({ error: 'Property Code already exists. Please choose another.' });
+      }
+      throw err;
+    }
   });
 
   // PATCH /api/v1/properties/:id
   fastify.patch('/:id', auth, async (req, reply) => {
-    const { name, address, property_type } = req.body;
-    const result = await queryWithRLS(
-      req.user.landlord_id,
-      `UPDATE properties SET
-         name = COALESCE($1, name),
-         address = COALESCE($2, address),
-         property_type = COALESCE($3::text, property_type::text)::property_type,
-         updated_at = NOW()
-       WHERE id = $4 RETURNING *`,
-      [name, address, property_type, req.params.id]
-    );
-    if (!result.rows[0]) return reply.code(404).send({ error: 'Property not found' });
-    return result.rows[0];
+    const { name, address, property_type, property_code } = req.body;
+    
+    try {
+      const result = await queryWithRLS(
+        req.user.landlord_id,
+        `UPDATE properties SET
+           name = COALESCE($1, name),
+           address = COALESCE($2, address),
+           property_type = COALESCE($3::text, property_type::text)::property_type,
+           property_code = COALESCE($4, property_code),
+           updated_at = NOW()
+         WHERE id = $5 RETURNING *`,
+        [name, address, property_type, property_code, req.params.id]
+      );
+      if (!result.rows[0]) return reply.code(404).send({ error: 'Property not found' });
+      return result.rows[0];
+    } catch (err) {
+      if (err.code === '23505') { // Unique violation
+        return reply.code(400).send({ error: 'Property Code already exists. Please choose another.' });
+      }
+      throw err;
+    }
   });
 
   // DELETE /api/v1/properties/:id

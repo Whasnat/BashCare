@@ -9,14 +9,19 @@ import useAuthStore from '../../store/authStore';
 
 function PropertyModal({ open, onClose, property, onSaved }) {
   const isEdit = !!property;
-  const [form, setForm] = useState({ name: '', address: '', property_type: 'RESIDENTIAL' });
+  const [form, setForm] = useState({ name: '', address: '', property_type: 'RESIDENTIAL', property_code: '' });
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (property) setForm({ name: property.name, address: property.address, property_type: property.property_type || 'RESIDENTIAL' });
-    else setForm({ name: '', address: '', property_type: 'RESIDENTIAL' });
+    if (property) {
+      setForm({ name: property.name, address: property.address, property_type: property.property_type || 'RESIDENTIAL', property_code: property.property_code || '' });
+    } else {
+      // Generate a random 8-char code as default, user can change it
+      const randomCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      setForm({ name: '', address: '', property_type: 'RESIDENTIAL', property_code: randomCode });
+    }
     setIsDirty(false);
   }, [property, open]);
 
@@ -34,7 +39,9 @@ function PropertyModal({ open, onClose, property, onSaved }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.address.trim()) return toast.error('Name and address are required');
+    if (!form.name.trim() || !form.address.trim() || !form.property_code.trim()) {
+      return toast.error('Name, address, and property code are required');
+    }
     setSaving(true);
     try {
       if (isEdit) {
@@ -80,6 +87,16 @@ function PropertyModal({ open, onClose, property, onSaved }) {
                 <option value="COWORKING">Co-working Space</option>
                 <option value="WAREHOUSE">Warehouse</option>
               </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Property Code * (Must be unique)</label>
+              <input
+                className="form-input"
+                placeholder="e.g. TOWER-A"
+                value={form.property_code}
+                onChange={handleChange('property_code')}
+                required
+              />
             </div>
             <div className="form-group">
               <label className="form-label">{t('properties.propertyName')} *</label>
