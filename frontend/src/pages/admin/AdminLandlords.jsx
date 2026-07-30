@@ -349,6 +349,7 @@ export default function AdminLandlords() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* Create Landlord Modal */}
