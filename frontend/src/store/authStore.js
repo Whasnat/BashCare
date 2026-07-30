@@ -22,6 +22,16 @@ const useAuthStore = create(
       impersonation: { active: false, originalToken: null },
       completedTours: [],
       onboarding: { isActive: true, step: 0 },
+      platformSettings: null,
+
+      fetchPlatformSettings: async () => {
+        try {
+          const { data } = await api.get('/auth/platform-settings');
+          set({ platformSettings: data });
+        } catch (e) {
+          console.error("Failed to fetch platform settings", e);
+        }
+      },
 
       startOnboarding: () => set({ onboarding: { isActive: true, step: 0 } }),
       advanceOnboarding: () => set((state) => ({ onboarding: { ...state.onboarding, step: state.onboarding.step + 1 } })),

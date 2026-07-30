@@ -156,12 +156,28 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 function App() {
   const hydrateAuth = useAuthStore((state) => state.hydrate);
+  const fetchPlatformSettings = useAuthStore((state) => state.fetchPlatformSettings);
+  const platformSettings = useAuthStore((state) => state.platformSettings);
+  const user = useAuthStore((state) => state.user);
   const hydrateTheme = useThemeStore((state) => state.hydrate);
 
   useEffect(() => {
     hydrateAuth();
     hydrateTheme();
-  }, [hydrateAuth, hydrateTheme]);
+    fetchPlatformSettings();
+  }, [hydrateAuth, hydrateTheme, fetchPlatformSettings]);
+
+  if (platformSettings?.maintenance_mode && user?.role !== 'admin') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", textAlign: 'center', padding: 24 }}>
+        <div style={{ fontSize: 64, marginBottom: 24 }}>🛠️</div>
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontFamily: "'Outfit', sans-serif" }}>We'll be right back</h1>
+        <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', fontSize: '1.1rem', lineHeight: 1.5 }}>
+          The platform is currently undergoing scheduled maintenance. Please check back later.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

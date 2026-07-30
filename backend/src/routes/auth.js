@@ -2,8 +2,20 @@ import bcrypt from 'bcryptjs';
 import { queryAdmin, queryWithRLS } from '../config/database.js';
 
 export default async function authRoutes(fastify) {
+  // ─── Public Platform Settings ───────────────────────────────────────
+  fastify.get('/platform-settings', async () => {
+    const res = await queryAdmin(`SELECT allow_new_registrations, system_announcement, maintenance_mode FROM platform_settings LIMIT 1`);
+    return res.rows[0] || { allow_new_registrations: true, system_announcement: null, maintenance_mode: false };
+  });
+
   // ─── Register (Landlord) ────────────────────────────────────────────
   fastify.post('/register', async (request, reply) => {
+    const settingsRes = await queryAdmin(`SELECT allow_new_registrations FROM platform_settings LIMIT 1`);
+    const settings = settingsRes.rows[0] || { allow_new_registrations: true };
+    if (!settings.allow_new_registrations) {
+      return reply.code(403).send({ error: 'New registrations are currently disabled by the administrator' });
+    }
+
     const { company_name, email, password, full_name, contact_phone } = request.body;
 
     if (!email || !password || !company_name) {

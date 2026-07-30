@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 
 export default function Register() {
   const navigate = useNavigate();
+  const platformSettings = useAuthStore(state => state.platformSettings);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ 
@@ -39,8 +41,15 @@ export default function Register() {
           <p className="auth-subtitle mb-0">Join BashaCare as a landlord</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-col gap-4">
-          <div className="form-group">
+        {platformSettings && platformSettings.allow_new_registrations === false ? (
+          <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Registrations Closed</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>We are not currently accepting new landlord registrations at this time. Please check back later.</p>
+            <Link to="/login" className="btn btn-primary" style={{ display: 'inline-flex' }}>Return to Login</Link>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex-col gap-4">
+            <div className="form-group">
             <label className="form-label">Company / Property Name</label>
             <input 
               type="text" className="form-input" required
@@ -99,7 +108,8 @@ export default function Register() {
           <button type="submit" className="btn btn-primary w-full mt-4 justify-center py-3" disabled={loading}>
             {loading ? <div className="spinner"></div> : 'Register Account'}
           </button>
-        </form>
+          </form>
+        )}
 
         <div className="divider">OR</div>
 

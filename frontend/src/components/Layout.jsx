@@ -8,7 +8,7 @@ import OnboardingTour from './OnboardingTour';
 import useAuthStore from '../store/authStore';
 
 export default function Layout() {
-  const { user, impersonation } = useAuthStore();
+  const { user, impersonation, platformSettings } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -19,6 +19,19 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
+      {platformSettings?.system_announcement && (
+        <div style={{
+          background: 'var(--accent-primary)',
+          color: 'white',
+          padding: '8px 16px',
+          textAlign: 'center',
+          fontWeight: 600,
+          fontSize: '0.85rem',
+          zIndex: 1000,
+        }}>
+          {platformSettings.system_announcement}
+        </div>
+      )}
       {impersonation?.active && (
         <div style={{
           background: 'var(--accent-warning)',
