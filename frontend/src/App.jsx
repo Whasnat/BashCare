@@ -167,7 +167,9 @@ function App() {
     fetchPlatformSettings();
   }, [hydrateAuth, hydrateTheme, fetchPlatformSettings]);
 
-  if (platformSettings?.maintenance_mode && user?.role !== 'admin') {
+  const isLoginPage = window.location.pathname.startsWith('/login');
+
+  if (platformSettings?.maintenance_mode && user?.role !== 'admin' && !isLoginPage) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", textAlign: 'center', padding: 24 }}>
         <div style={{ fontSize: 64, marginBottom: 24 }}>🛠️</div>
@@ -175,6 +177,11 @@ function App() {
         <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', fontSize: '1.1rem', lineHeight: 1.5 }}>
           The platform is currently undergoing scheduled maintenance. Please check back later.
         </p>
+        {!user && (
+          <a href="/login" style={{ marginTop: 32, fontSize: '0.9rem', color: 'var(--text-muted)', textDecoration: 'underline' }}>
+            Admin Login
+          </a>
+        )}
       </div>
     );
   }
