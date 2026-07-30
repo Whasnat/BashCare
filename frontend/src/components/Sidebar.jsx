@@ -41,6 +41,7 @@ const NAV_ITEMS = {
     { labelKey: 'nav.adminDashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { labelKey: 'nav.landlords', path: '/admin/landlords', icon: Building2 },
     { labelKey: 'nav.allUsers', path: '/admin/users', icon: Users },
+    { labelKey: 'nav.settings', path: '/admin/settings', icon: Settings },
   ],
 };
 

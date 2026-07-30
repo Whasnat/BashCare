@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
   Building2, CheckCircle2, XCircle, RefreshCw, Search,
-  Plus, Eye, X, Mail, Phone, Calendar, Shield
+  Plus, Eye, X, Mail, Phone, Calendar, Shield, LogIn, Trash2
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import useAuthStore from '../../store/authStore';
 
 export default function AdminLandlords() {
   const [landlords, setLandlords] = useState([]);
@@ -19,6 +20,7 @@ export default function AdminLandlords() {
     mode: 'invite', inviteLink: null
   });
   const [creating, setCreating] = useState(false);
+  const { token, user } = useAuthStore();
 
   useEffect(() => { fetchLandlords(); }, []);
 
@@ -46,11 +48,54 @@ export default function AdminLandlords() {
       setLandlords((ls) =>
         ls.map((l) => l.id === landlordId ? { ...l, is_active: action === 'approve' } : l)
       );
+      if (showDetail?.id === landlordId) setShowDetail(prev => ({...prev, is_active: action === 'approve'}));
       toast.success(`Landlord ${action === 'approve' ? 'approved' : 'suspended'}`);
     } catch (err) {
       toast.error(err.response?.data?.error || `Failed to ${action}`);
     } finally {
       setProcessing((p) => ({ ...p, [landlordId]: false }));
+    }
+  };
+
+  const handleDelete = async (landlord) => {
+    const confirmation = window.prompt(`Type "${landlord.company_name}" to confirm deletion. This action is PERMANENT and will delete all properties, units, and tenants under this landlord.`);
+    if (confirmation !== landlord.company_name) {
+      if (confirmation !== null) toast.error("Company name did not match.");
+      return;
+    }
+    
+    setProcessing((p) => ({ ...p, [landlord.id]: true }));
+    try {
+      await api.delete(`/admin/landlords/${landlord.id}`);
+      setLandlords(ls => ls.filter(l => l.id !== landlord.id));
+      setShowDetail(null);
+      toast.success('Landlord deleted permanently');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete landlord');
+    } finally {
+      setProcessing((p) => ({ ...p, [landlord.id]: false }));
+    }
+  };
+
+  const handleImpersonate = async (landlordId) => {
+    try {
+      const { data } = await api.post('/impersonation', { target_id: landlordId });
+      // Temporarily store the original token so we can return
+      const originalToken = useAuthStore.getState().token;
+      
+      api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+      const decoded = JSON.parse(atob(data.token.split('.')[1]));
+      
+      useAuthStore.setState({
+        token: data.token,
+        isAuthenticated: true,
+        user: { ...user, role: 'landlord', landlord_id: landlordId }, 
+        impersonation: { active: true, originalToken }
+      });
+      
+      window.location.href = '/dashboard';
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to impersonate');
     }
   };
 
@@ -267,6 +312,39 @@ export default function AdminLandlords() {
                     </div>
                   ))}
                 </div>
+              </div>
+            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button 
+                className="btn btn-danger" 
+                onClick={() => handleDelete(showDetail)}
+                disabled={processing[showDetail.id]}
+              >
+                {processing[showDetail.id] ? <span className="spinner"/> : <Trash2 size={16} />}
+                Delete Landlord
+              </button>
+              
+              <div style={{ display: 'flex', gap: 12 }}>
+                {!showDetail.is_active ? (
+                  <button className="btn"
+                    style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--accent-emerald)', border: '1px solid rgba(16,185,129,0.2)' }}
+                    disabled={processing[showDetail.id]} onClick={() => handleAction(showDetail.id, 'approve')}>
+                    {processing[showDetail.id] ? <span className="spinner" /> : <CheckCircle2 size={16} />}
+                    Approve
+                  </button>
+                ) : (
+                  <button className="btn btn-ghost" style={{ color: 'var(--accent-rose)' }}
+                    disabled={processing[showDetail.id]} onClick={() => handleAction(showDetail.id, 'suspend')}>
+                    {processing[showDetail.id] ? <span className="spinner" /> : <XCircle size={16} />}
+                    Suspend
+                  </button>
+                )}
+                
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => handleImpersonate(showDetail.id)}
+                >
+                  <LogIn size={16} /> Login As
+                </button>
               </div>
             </div>
           </div>

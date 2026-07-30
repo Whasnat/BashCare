@@ -131,6 +131,16 @@ export default async function adminRoutes(fastify) {
     return { message: 'Landlord suspended', landlord: result.rows[0] };
   });
 
+  // ─── Delete a landlord ──────────────────────────────────────────────
+  fastify.delete('/landlords/:id', adminOnly, async (req, reply) => {
+    const result = await queryAdmin(
+      `DELETE FROM landlord_profiles WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    if (!result.rows[0]) return reply.code(404).send({ error: 'Landlord not found' });
+    return { message: 'Landlord deleted successfully' };
+  });
+
   // ─── Platform overview stats ────────────────────────────────────────
   fastify.get('/stats', adminOnly, async () => {
     const [landlords, properties, units, agreements, invoices, userCount, outstanding, trendData] = await Promise.all([
@@ -199,5 +209,42 @@ export default async function adminRoutes(fastify) {
       message: result.rows[0].is_active ? 'User activated' : 'User deactivated',
       user: result.rows[0],
     };
+  });
+
+  // ─── Get platform settings ──────────────────────────────────────────
+  fastify.get('/settings', adminOnly, async () => {
+    const result = await queryAdmin(`SELECT * FROM platform_settings LIMIT 1`);
+    return result.rows[0] || {};
+  });
+
+  // ─── Update platform settings ───────────────────────────────────────
+  fastify.patch('/settings', adminOnly, async (req, reply) => {
+    const { allow_new_registrations, default_trial_days, system_announcement, maintenance_mode } = req.body;
+    
+    // Read current settings to safely coalesce
+    const currentRes = await queryAdmin(`SELECT * FROM platform_settings LIMIT 1`);
+    const current = currentRes.rows[0] || {};
+
+    const allow = allow_new_registrations !== undefined ? allow_new_registrations : current.allow_new_registrations;
+    const trial = default_trial_days !== undefined ? default_trial_days : current.default_trial_days;
+    const announ = system_announcement !== undefined ? system_announcement : current.system_announcement;
+    const maint = maintenance_mode !== undefined ? maintenance_mode : current.maintenance_mode;
+
+    let result;
+    if (current.id) {
+      result = await queryAdmin(
+        `UPDATE platform_settings 
+         SET allow_new_registrations = $1, default_trial_days = $2, system_announcement = $3, maintenance_mode = $4, updated_at = NOW(), updated_by = $5
+         WHERE id = $6 RETURNING *`,
+        [allow, trial, announ, maint, req.user.id, current.id]
+      );
+    } else {
+      result = await queryAdmin(
+        `INSERT INTO platform_settings (allow_new_registrations, default_trial_days, system_announcement, maintenance_mode, updated_by)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [allow, trial, announ, maint, req.user.id]
+      );
+    }
+    return result.rows[0];
   });
 }
